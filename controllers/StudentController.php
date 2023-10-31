@@ -1,0 +1,12 @@
+<?php
+
+    $student = new Models\Student;
+
+    Flight::route('GET /student/getAll', [$student, "getStudentAll"]);
+    Flight::route('GET /student/getStudent/@rut_student', [$student, "getStudent"]);
+    Flight::route('GET /student/getName/@rut_estudiante', [$student, "getNameStudent"]);
+    Flight::route('POST /student/setStudent', [$student, "setStudent"]);
+    Flight::route('PUT /student/update', [$student, "updateStudent"]);
+    Flight::route('DELETE /student/delete/@id_estudiante', [$student, "deleteStudent"]);
+
+?>
