@@ -128,6 +128,27 @@
             }
         }
 
+        public function getMatricula($id) {
+            $this->validateToken();
+
+            // consulta
+            // SELECT m.id_registro_matricula, m.numero_matricula, m.fecha_matricula,
+            // m.id_estudiante, e.rut_estudiante, e.dv_rut_estudiante,
+            // (CASE WHEN e.nombre_social IS NULL 
+            // THEN e.nombres_estudiante
+            // ELSE '(' || e.nombre_social || ') ' || e.nombres_estudiante END
+            // || ' ' || e.ap_estudiante || ' ' || e.am_estudiante) AS nombres_estudiante,
+            // m.id_apoderado_titular, apt.rut_apoderado, apt.dv_rut_apoderado,
+            // (apt.nombres_apoderado || ' ' || apt.ap_apoderado) AS nombres_titular,
+
+            // m.id_apoderado_suplente
+
+            // FROM libromatricula.registro_matricula AS m
+            // LEFT JOIN estudiante AS e ON e.id_estudiante = m.id_estudiante 
+            // LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+            // WHERE m.id_registro_matricula = 16
+        }
+
         // Método para obtener el numero de matricula correlativo por nivel
         protected function getNumberMatricula($grade) {
             if ($grade >= 1 && $grade <= 4) {
