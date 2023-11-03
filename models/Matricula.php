@@ -317,6 +317,7 @@
         public function updateMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
+            // trabajando en update matricula
 
             Flight::json($matricula);
 
