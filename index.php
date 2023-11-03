@@ -18,7 +18,7 @@ require_once "./controllers/AuthController.php";
 // MATRICULA -------------------------------------------------------->
 require_once "./controllers/MatriculaController.php";
 
-// // STUDENT ---------------------------------------------------------->
+// STUDENT ---------------------------------------------------------->
 require_once "./controllers/StudentController.php";
 
 // REPRESENTATIVE ---------------------------------------------------------->
