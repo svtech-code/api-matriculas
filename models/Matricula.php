@@ -11,6 +11,7 @@
             parent::__construct();
         }
 
+        // Método para obtener el estado del periodo de matricula
         public function getPeriodoMatricula() {
             $statementPeriodoMatricula = $this->preConsult(
                 "SELECT estado 
@@ -31,7 +32,7 @@
             }
         }
 
-        // revisar y definir periodo de consulta
+        // método para obtener la cantidad de matriculas y retiros del periodo lectivo
         public function getCountAltasBajas($periodo) {
             $this->validateToken();
 
@@ -58,7 +59,7 @@
             }
         }
 
-        // Método para obtener todas las matriculas
+        // método para obtener lista de matriculas
         public function getMatriculaAll($periodo) {
             $this->validateToken();
 
@@ -71,8 +72,8 @@
                 to_char(m.fecha_alta_matricula, 'DD / MM / YYYY') AS fecha_alta,
                 to_char(m.fecha_baja_matricula, 'DD / MM / YYYY') AS fecha_baja,
                 to_char(m.fecha_matricula, 'DD / MM / YYYY') AS fecha_matricula,
-                CASE WHEN e.sexo = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(estado.nombre_estado) AS estado,
-                CASE WHEN m.id_curso IS NULL THEN m.grado::text ELSE curso.curso END AS curso, 
+                CASE WHEN e.sexo = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(estado.nombre_estado) AS estado, m.grado,
+                --CASE WHEN m.id_curso IS NULL THEN m.grado::text ELSE curso.curso END AS curso, 
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
                 (apt.nombres_apoderado || ' ' || apt.ap_apoderado || ' ' || apt.am_apoderado) AS apoderado_titular,
                 ('+569-' || apt.telefono) AS telefono_titular,
@@ -84,7 +85,7 @@
                 LEFT JOIN estado ON estado.id_estado = m.id_estado_matricula
                 LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
                 LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
-                LEFT JOIN curso ON curso.id_curso = m.id_curso
+                --LEFT JOIN curso ON curso.id_curso = m.id_curso
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY m.numero_matricula ASC;"
             );
@@ -106,7 +107,7 @@
                         "fecha_matricula" => $matricula->fecha_matricula,
                         "sexo" => $matricula->sexo,
                         "estado" => $matricula->estado,
-                        "curso" => $matricula->curso,
+                        "grado" => $matricula->grado,
                         "rut_titular" => $matricula->rut_apoderado_titular,
                         "apoderado_titular" => $matricula->apoderado_titular,
                         "telefono_titular" => $matricula->telefono_titular,
@@ -127,7 +128,7 @@
             }
         }
 
-        // Método para obtener los datos de una matrícula
+        // método para obtener los datos de una matricula
         public function getMatricula($id) {
             $this->validateToken();
 
@@ -181,7 +182,7 @@
             }
         }
 
-        // Método para obtener el numero de matricula correlativo por nivel
+        // método para obtener el número de matricula correlativo por nivel
         protected function getNumberMatricula($grade) {
             if ($grade >= 1 && $grade <= 4) {
                 $statementNumberMatricula = $this->preConsult(
@@ -210,7 +211,7 @@
             // no cerrar la conexion aún, ya que la utilizare en otro metodo
         }
 
-        // Método para verificar si el estudiante ya se encuentra matriculado
+        // método para comprobar si un estudiante ya se encuentra matriculado
         protected function verifStudentMatricula($id_estudiante, $periodo) {
             $statementVerifyStudent = $this->preConsult(
                 "SELECT id_registro_matricula
@@ -234,8 +235,7 @@
             }
         }
 
-        // verificar y definir según periodo de trabajo ------->
-        // Método para registar una matrícula
+        // método para registrar una matrícula
         public function setMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
@@ -245,7 +245,6 @@
                 $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
                 $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
             );
-
 
             $statementMatricula = $this->preConsult(
                 "INSERT INTO libromatricula.registro_matricula
@@ -265,10 +264,7 @@
                     $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
                 ]);
 
-                $this->array = [
-                    "numero_matricual" => $n_matricula,
-                    "message" => "success"
-                ];
+                $this->array = ["numero_matricual" => $n_matricula];
                 Flight::json($this->array);
 
             } catch (Exception $error) {
@@ -282,6 +278,51 @@
 
             
         }
+
+
+
+
+
+        
+
+         // Método para actualizar una matricula
+        public function updateMatricula() {
+            $this->validateToken();
+            $matricula = Flight::request()->data;
+            
+            $statementUpdateMatricula = $this->preConsult(
+                "UPDATE libromatricula.registro_matricula
+                SET id_estudiante = ?, id_apoderado_titular = ?, 
+                id_apoderado_suplente = ?, fecha_matricula = ?
+                WHERE id_registro_matricula = ?;"
+            );
+
+            try {
+                $statementUpdateMatricula->execute([
+                    intval($matricula->id_estudiante),
+                    $matricula->id_titular ? intval($matricula->id_titular) : null,
+                    $matricula->id_suplente ? intval($matricula->id_suplente) : null,
+                    $matricula->fecha_matricula ? $matricula->fecha_matricula : null,
+                    $matricula->id_matricula ? intval($matricula->id_matricula) : null,
+                ]);
+
+            } catch(Exception $error) {
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+
+            } finally {
+                $this->closeConnection();
+            }
+
+        }
+
+
+
+
+
+
+
 
         // ------- trabajando en las funcionalidades
         // ver si será implementada, por lo que conlleva eliminar un registro de matricula !!!!! ------->
@@ -313,15 +354,7 @@
 
 
 
-
-        public function updateMatricula() {
-            $this->validateToken();
-            $matricula = Flight::request()->data;
-            // trabajando en update matricula
-
-            Flight::json($matricula);
-
-        }
+       
 
 
         public function exportMatricula() {

@@ -6,9 +6,9 @@
     Flight::route('GET /matricula/getAll/@periodo', [$matricula, "getMatriculaAll"]);
     Flight::route('GET /matricula/getMatricula/@id', [$matricula, "getMatricula"]);
     Flight::route('POST /matricula/setMatricula', [$matricula, "setMatricula"]);
+    Flight::route('PUT /matricula/updateMatricula', [$matricula, "updateMatricula"]);
     Flight::route('DELETE /matricula/deleteMatricula/@id', [$matricula, "deleteMatricula"]);
 
-    Flight::route('PUT /matricula/updateMatricula', [$matricula, "updateMatricula"]);
     
     // Flight::route('GET /matricula/getNumber/@grade', [$matricula, "getNumberMatricula"]);
     
