@@ -279,13 +279,7 @@
             
         }
 
-
-
-
-
-        
-
-         // Método para actualizar una matricula
+        // método para actualizar una matrícula
         public function updateMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
@@ -314,8 +308,13 @@
             } finally {
                 $this->closeConnection();
             }
-
         }
+
+
+
+
+        
+
 
 
 

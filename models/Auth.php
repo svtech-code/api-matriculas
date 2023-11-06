@@ -15,6 +15,7 @@
             parent::__construct();
         }
 
+        // método para obtener el token de una peticion a la api
         protected function getToken() {
             $headers = apache_request_headers();
             if (!isset($headers['Authorization'])) {
@@ -37,6 +38,7 @@
             };
         }
 
+        // método para validar token de sesión
         protected function validateToken() {
             $infoToken = $this->getToken();
             $query = $this->preConsult("SELECT id_privilegio FROM usuario WHERE id_usuario = ?");
@@ -84,6 +86,7 @@
             // return Flight::json(false);
         }
 
+        // método para verificar cuenta de usuario y fevolver token de sesion
         public function auth() {
             $user = Flight::request()->data->email;
             $password = Flight::request()->data->password;
@@ -141,6 +144,7 @@
             }
         }
 
+        // ver si el metodo es necesario
         public function validateSession() {
             try {
                 $privilege = $this->validateToken();
@@ -156,6 +160,11 @@
             } finally {
                 $this->closeConnection();
             }
+        }
+
+        // para trabajar
+        public function validatePrivilege() {
+
         }
 
     }

@@ -2,7 +2,9 @@
   "require": {
     "mikecao/flight": "^2.0",
     "firebase/php-jwt": "^6.8",
-    "vlucas/phpdotenv": "^5.5"
+    "vlucas/phpdotenv": "^5.5",
+    "phpoffice/phpword": "^1.1",
+    "phpoffice/phpspreadsheet": "^1.29"
   },
   "autoload": {
     "psr-4": {
