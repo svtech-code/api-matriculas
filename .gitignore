@@ -1,2 +1,3 @@
 # ignorar archivos .env
 .env
+.DS_Store
