@@ -66,14 +66,13 @@
             // Ver como manejar la condicion del año lectivo
             $statmentMatricula = $this->preConsult(
                 "SELECT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
-                e.ap_estudiante, e.am_estudiante, (CASE WHEN e.nombre_social IS NULL THEN e.nombres_estudiante ELSE
-                '(' || e.nombre_social || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                COALESCE(to_char(e.fecha_nacimiento, 'DD / MM / YYYY'), 'Sin registro') AS fecha_nacimiento,
+                e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD / MM / YYYY'), 'Sin registro') AS fecha_nacimiento,
                 to_char(m.fecha_alta_matricula, 'DD / MM / YYYY') AS fecha_alta,
                 to_char(m.fecha_baja_matricula, 'DD / MM / YYYY') AS fecha_baja,
                 to_char(m.fecha_matricula, 'DD / MM / YYYY') AS fecha_matricula,
-                CASE WHEN e.sexo = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(estado.nombre_estado) AS estado, m.grado,
-                --CASE WHEN m.id_curso IS NULL THEN m.grado::text ELSE curso.curso END AS curso, 
+                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(estado.nombre_estado) AS estado, m.grado,
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
                 (apt.nombres_apoderado || ' ' || apt.ap_apoderado || ' ' || apt.am_apoderado) AS apoderado_titular,
                 ('+569-' || apt.telefono) AS telefono_titular,
@@ -81,11 +80,10 @@
                 (aps.nombres_apoderado || ' ' || aps.ap_apoderado || ' ' || aps.am_apoderado) AS apoderado_suplente,
                 ('+569-' || aps.telefono) AS telefono_suplente
                 FROM libromatricula.registro_matricula AS m
-                INNER JOIN estudiante AS e ON e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 LEFT JOIN estado ON estado.id_estado = m.id_estado_matricula
                 LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
                 LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
-                --LEFT JOIN curso ON curso.id_curso = m.id_curso
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY m.numero_matricula ASC;"
             );
@@ -98,8 +96,8 @@
                         "id" => $matricula->id_registro_matricula,
                         "matricula" => $matricula->numero_matricula,
                         "rut" => $matricula->rut_estudiante,
-                        "paterno" => $matricula->ap_estudiante,
-                        "materno" => $matricula->am_estudiante,
+                        "paterno" => $matricula->apellido_paterno_estudiante,
+                        "materno" => $matricula->apellido_materno_estudiante,
                         "nombres" => $matricula->nombres_estudiante,
                         "fecha_nacimiento" => $matricula->fecha_nacimiento,
                         "fecha_alta" => $matricula->fecha_alta,
@@ -135,15 +133,15 @@
             $statementMatricula = $this->preConsult(
                 "SELECT m.numero_matricula, m.fecha_matricula, m.grado,
                 m.id_estudiante, e.rut_estudiante, e.dv_rut_estudiante,
-                (CASE WHEN e.nombre_social IS NULL THEN e.nombres_estudiante
-                ELSE '(' || e.nombre_social || ') ' || e.nombres_estudiante END
-                || ' ' || e.ap_estudiante || ' ' || e.am_estudiante) AS nombres_estudiante,
+                (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante
+                ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
+                || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
                 m.id_apoderado_titular, apt.rut_apoderado AS rut_titular, apt.dv_rut_apoderado AS dv_rut_titular,
                 (apt.nombres_apoderado || ' ' || apt.ap_apoderado || ' ' || apt.am_apoderado) AS nombres_titular,
                 m.id_apoderado_suplente, aps.rut_apoderado AS rut_suplente, aps.dv_rut_apoderado AS dv_rut_suplente,
                 (aps.nombres_apoderado || ' ' || aps.ap_apoderado || ' ' || aps.am_apoderado) AS nombres_suplente
                 FROM libromatricula.registro_matricula AS m
-                LEFT JOIN estudiante AS e ON e.id_estudiante = m.id_estudiante 
+                LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante 
                 LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
                 LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 WHERE m.id_registro_matricula = ?;"
@@ -224,7 +222,7 @@
                 $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
                 if ($verify) {
                     Flight::halt(403, json_encode([
-                        "message" => "Estudiante matriculado !"
+                        "message" => "Estudiante ya matriculado !!"
                     ]));
                 }
 

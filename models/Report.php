@@ -39,12 +39,12 @@
 
             $statementReport = $this->preConsult(
                 "SELECT 
-                (e.nombres_estudiante || ' ' || e.ap_estudiante || ' ' || e.am_estudiante) AS nombres_estudiante,
+                (e.nombres_estudiante || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
                 (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, m.grado,
                 CASE WHEN m.grado IN (7,8) THEN 'Básica' WHEN m.grado BETWEEN 1 AND 4 THEN 'Media' END AS nivel,
                 m.anio_lectivo_matricula, m.numero_matricula
                 FROM libromatricula.registro_matricula AS m
-                INNER JOIN estudiante AS e ON e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 WHERE e.rut_estudiante = ? AND m.anio_lectivo_matricula = ?;"
             );
 
@@ -98,14 +98,14 @@
 
             // consulta SQL
             $statementReport = $this->preConsult(
-                "SELECT 
-                (e.nombres_estudiante || ' ' || e.ap_estudiante || ' ' || e.am_estudiante) AS nombres_estudiante,
+                "SELECT (e.nombres_estudiante || ' ' || e.apellido_paterno_estudiante 
+                || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
                 (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, m.grado,
                 CASE WHEN m.grado IN (7,8) THEN 'Básica' WHEN m.grado BETWEEN 1 AND 4 THEN 'Media' END AS nivel,
-                m.anio_lectivo_matricula, m.numero_matricula, substring(c.curso FROM 2) AS letra_curso
+                m.anio_lectivo_matricula, m.numero_matricula, c.letra_curso
                 FROM libromatricula.registro_matricula AS m
-                INNER JOIN estudiante AS e on e.id_estudiante = m.id_estudiante
-                INNER JOIN curso AS c ON c.id_curso = m.id_curso
+                INNER JOIN libromatricula.registro_estudiante AS e on e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                 WHERE e.rut_estudiante = ? AND m.anio_lectivo_matricula = ?;"
             );
 

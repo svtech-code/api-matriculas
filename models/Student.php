@@ -93,19 +93,42 @@ class Student extends Auth {
 
     // metodo para obtener el nombre del estudiante
     // method to obtain the student`s name
-    public function getNameStudent($rut_student) {
+    public function getNameStudent($rut_student, $periodo) {
         $this->validateToken();
+        $responseSearch = false;
+
+        // devuelve un booleano
+        $statementSearchStudent = $this->preConsult(
+            "SELECT EXISTS (SELECT lista.rut_estudiante
+            FROM libromatricula.lista_sae AS lista
+            WHERE lista.rut_estudiante = ?
+            AND lista.periodo_matricula = ?);"
+        );
+
+
         $statmentStudent = $this->preConsult(
-            "SELECT id_estudiante,
-            (CASE WHEN nombre_social IS NULL 
-            THEN nombres_estudiante 
-            ELSE '(' || nombre_social || ') ' || nombres_estudiante END) 
-            || ' ' || ap_estudiante || ' ' || am_estudiante AS estudiante
-            FROM estudiante
-            WHERE rut_estudiante = ?;"
+            "SELECT e.id_estudiante,
+            (CASE WHEN e.nombre_social_estudiante IS NULL
+            THEN e.nombres_estudiante
+            ELSE '(' || e.nombre_social_estudiante || ') ' || nombres_estudiante END)
+            || ' ' || e.apellido_paterno_estudiante || ' ' || apellido_materno_estudiante AS estudiante
+            FROM libromatricula.registro_estudiante AS e
+            WHERE e.rut_estudiante = ?"
         );
 
         try {
+
+            if ($periodo !== date('Y')) {
+                $statementSearchStudent->execute([$rut_student, $periodo]);
+                $responseSearch = $statementSearchStudent->fetchColumn();
+    
+                if (!$responseSearch) {
+                    Flight::halt(400, json_encode([
+                        "message" => "El rut no esta en lista SAE !"
+                    ]));
+                } 
+            }
+
             $statmentStudent->execute([$rut_student]);
             $student = $statmentStudent->fetch(PDO::FETCH_OBJ);
             if (!$student) {
