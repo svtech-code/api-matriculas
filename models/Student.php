@@ -209,6 +209,8 @@ class Student extends Auth {
     }
 
     // Agregar validación de privilegio para editar y eliminar datos
+    // cambiar consultas a tabla registro matricula
+    // trabajar con variables de proceso matricula, para validar registros en tabla registro_SAE
 
 
 }

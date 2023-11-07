@@ -324,49 +324,14 @@
 
 
         // ------- trabajando en las funcionalidades
-        // ver si será implementada, por lo que conlleva eliminar un registro de matricula !!!!! ------->
-        public function deleteMatricula($id) {
-            $this->validateToken();
-            $statementDeleteMatricula = $this->preConsult(
-                "DELETE FROM libromatricula.registro_matricula
-                WHERE id_registro_matricula = ?;"
-            );
 
-            try {
-                $statementDeleteMatricula->execute([intval($id)]);
-                $this->array = ["message" => "success"];
-                Flight::json($this->array);
-
-            } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-            } finally {
-                $this->closeConnection();
-            }
-        }
 
 
 
 
         // ------- funcionalidades por trabajar
 
-
-
-       
-
-
-        public function exportMatricula() {
-
-        }
-
-        public function getCertificadoAlumnoRegular() {
-
-        }
-
-        public function getCertificadoMatricula() {
-
-        }
+        // trabajar las consultas SQL, para trabajar con la tabla registro_estudiante
         
     }
 
