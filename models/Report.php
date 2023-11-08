@@ -155,6 +155,58 @@
             }
 
         }
+
+        public function getReportAllMatricula() {
+
+            // consulta SQL para generar excel
+            
+            // -- TRABAJAR PARA REPORTE EXCEL
+            // SELECT m.numero_matricula, m.grado, 
+            // CASE WHEN m.id_curso IS NULL THEN null ELSE (c.grado_curso::text || c.letra_curso) END AS curso,
+            // m.numero_lista_curso, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+            // e.apellido_paterno_estudiante, e.apellido_materno_estudiante, e.nombres_estudiante,
+            // e.nombre_social_estudiante, e.fecha_nacimiento_estudiante, e.sexo_estudiante, m.fecha_matricula,
+            // m.fecha_alta_matricula, m.fecha_baja_matricula,
+            // (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) AS rut_titular,
+            // apt.ap_apoderado AS ap_titular, apt.am_apoderado AS am_titular, apt.nombres_apoderado AS nombres_titular,
+            // (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_suplente,
+            // aps.ap_apoderado AS ap_suplente, aps.am_apoderado AS am_suplente, aps.nombres_apoderado AS nombres_suplente
+
+            // --trabajar estado de la matricula
+            // --CASE WHEN matricula.id_estado = 1 THEN 'Matriculado(a)'
+            // --WHEN matricula.id_estado = 4 THEN 'Retirado(a)'
+            // --WHEN matricula.id_estado = 5 THEN 'Suspendido(a)' END AS estado_matricula
+            // --trabajar estado de la matricula
+
+            // FROM libromatricula.registro_matricula AS m
+            // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+            // INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+            // LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+            // LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+            // --LEFT JOIN estado ON estado.id_estado = matricula.id_estado
+            // WHERE anio_lectivo_matricula = 2024
+
+        }
+
+
+
+
+
+
+
+
+
+        // =============> FUNCIONALIDADES PARA TRABAJAR POSTERIOR AL PROCESO DE MATRICULA
+        public function getReportAltas() {}
+
+
+        public function getReportBajas() {}
+
+
+        public function getReportCambioApoderados() {}
+
+
+        public function getReportCambioCurso() {}
         
     }
 

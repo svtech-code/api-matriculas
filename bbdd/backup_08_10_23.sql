@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.5
--- Dumped by pg_dump version 14.5
+-- Dumped from database version 14.2
+-- Dumped by pg_dump version 14.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -450,6 +450,16 @@ ALTER SEQUENCE controlfondo.usuario_id_usuario_seq OWNED BY controlfondo.usuario
 
 
 --
+-- Name: cuenta_usuario; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.cuenta_usuario (
+);
+
+
+ALTER TABLE libromatricula.cuenta_usuario OWNER TO postgres;
+
+--
 -- Name: lista_sae; Type: TABLE; Schema: libromatricula; Owner: postgres
 --
 
@@ -485,6 +495,26 @@ ALTER SEQUENCE libromatricula.lista_sae_id_registro_seq OWNED BY libromatricula.
 
 
 --
+-- Name: log_cambio_apoderado; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.log_cambio_apoderado (
+);
+
+
+ALTER TABLE libromatricula.log_cambio_apoderado OWNER TO postgres;
+
+--
+-- Name: log_cambio_curso; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.log_cambio_curso (
+);
+
+
+ALTER TABLE libromatricula.log_cambio_curso OWNER TO postgres;
+
+--
 -- Name: periodo_matricula; Type: TABLE; Schema: libromatricula; Owner: postgres
 --
 
@@ -518,6 +548,48 @@ ALTER TABLE libromatricula.periodo_matricula_id_periodo_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE libromatricula.periodo_matricula_id_periodo_seq OWNED BY libromatricula.periodo_matricula.id_periodo;
+
+
+--
+-- Name: registro_apoderado; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.registro_apoderado (
+    id_apoderado integer NOT NULL,
+    rut_apoderado character varying(10) NOT NULL,
+    dv_rut_estudiante character varying(1) NOT NULL,
+    apellido_paterno_apoderado character varying(40) NOT NULL,
+    apellido_materno_estudiante character varying(40) NOT NULL,
+    nombres_apoderado character varying(80) NOT NULL,
+    telefono_apoderado character varying(20),
+    direccion_apoderado character varying(200),
+    fecha_registro_apoderado timestamp without time zone DEFAULT now(),
+    fecha_modificacion_apoderado timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE libromatricula.registro_apoderado OWNER TO postgres;
+
+--
+-- Name: registro_apoderado_id_apoderado_seq; Type: SEQUENCE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE SEQUENCE libromatricula.registro_apoderado_id_apoderado_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE libromatricula.registro_apoderado_id_apoderado_seq OWNER TO postgres;
+
+--
+-- Name: registro_apoderado_id_apoderado_seq; Type: SEQUENCE OWNED BY; Schema: libromatricula; Owner: postgres
+--
+
+ALTER SEQUENCE libromatricula.registro_apoderado_id_apoderado_seq OWNED BY libromatricula.registro_apoderado.id_apoderado;
 
 
 --
@@ -561,6 +633,16 @@ ALTER SEQUENCE libromatricula.registro_curso_id_curso_seq OWNED BY libromatricul
 
 
 --
+-- Name: registro_estado; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.registro_estado (
+);
+
+
+ALTER TABLE libromatricula.registro_estado OWNER TO postgres;
+
+--
 -- Name: registro_estudiante; Type: TABLE; Schema: libromatricula; Owner: postgres
 --
 
@@ -574,8 +656,8 @@ CREATE TABLE libromatricula.registro_estudiante (
     nombre_social_estudiante character varying(40),
     fecha_nacimiento_estudiante date,
     sexo_estudiante character varying(1),
-    fecha_registro timestamp without time zone DEFAULT now() NOT NULL,
-    fecha_modificacion timestamp without time zone DEFAULT now() NOT NULL
+    fecha_registro_estudiante timestamp without time zone DEFAULT now() NOT NULL,
+    fecha_modificacion_estudiante timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -602,6 +684,16 @@ ALTER TABLE libromatricula.registro_estudiante_id_estudiante_seq OWNER TO postgr
 
 ALTER SEQUENCE libromatricula.registro_estudiante_id_estudiante_seq OWNED BY libromatricula.registro_estudiante.id_estudiante;
 
+
+--
+-- Name: registro_funcionario; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.registro_funcionario (
+);
+
+
+ALTER TABLE libromatricula.registro_funcionario OWNER TO postgres;
 
 --
 -- Name: registro_matricula; Type: TABLE; Schema: libromatricula; Owner: postgres
@@ -649,6 +741,16 @@ ALTER TABLE libromatricula.registro_matricula_id_registro_matricula_seq OWNER TO
 
 ALTER SEQUENCE libromatricula.registro_matricula_id_registro_matricula_seq OWNED BY libromatricula.registro_matricula.id_registro_matricula;
 
+
+--
+-- Name: tipo_funcionario; Type: TABLE; Schema: libromatricula; Owner: postgres
+--
+
+CREATE TABLE libromatricula.tipo_funcionario (
+);
+
+
+ALTER TABLE libromatricula.tipo_funcionario OWNER TO postgres;
 
 --
 -- Name: apoderado; Type: TABLE; Schema: public; Owner: postgres
@@ -1483,6 +1585,13 @@ ALTER TABLE ONLY libromatricula.periodo_matricula ALTER COLUMN id_periodo SET DE
 
 
 --
+-- Name: registro_apoderado id_apoderado; Type: DEFAULT; Schema: libromatricula; Owner: postgres
+--
+
+ALTER TABLE ONLY libromatricula.registro_apoderado ALTER COLUMN id_apoderado SET DEFAULT nextval('libromatricula.registro_apoderado_id_apoderado_seq'::regclass);
+
+
+--
 -- Name: registro_curso id_curso; Type: DEFAULT; Schema: libromatricula; Owner: postgres
 --
 
@@ -1727,6 +1836,14 @@ COPY controlfondo.usuario (id_usuario, nombre_usuario, clave_usuario, id_funcion
 
 
 --
+-- Data for Name: cuenta_usuario; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.cuenta_usuario  FROM stdin;
+\.
+
+
+--
 -- Data for Name: lista_sae; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
 --
 
@@ -1737,12 +1854,36 @@ COPY libromatricula.lista_sae (id_registro, rut_estudiante, periodo_matricula) F
 
 
 --
+-- Data for Name: log_cambio_apoderado; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.log_cambio_apoderado  FROM stdin;
+\.
+
+
+--
+-- Data for Name: log_cambio_curso; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.log_cambio_curso  FROM stdin;
+\.
+
+
+--
 -- Data for Name: periodo_matricula; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
 --
 
 COPY libromatricula.periodo_matricula (id_periodo, anio_lectivo, estado, fecha_modificacion) FROM stdin;
 2	2024	f	\N
 1	2023	t	\N
+\.
+
+
+--
+-- Data for Name: registro_apoderado; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.registro_apoderado (id_apoderado, rut_apoderado, dv_rut_estudiante, apellido_paterno_apoderado, apellido_materno_estudiante, nombres_apoderado, telefono_apoderado, direccion_apoderado, fecha_registro_apoderado, fecha_modificacion_apoderado) FROM stdin;
 \.
 
 
@@ -1799,12 +1940,28 @@ COPY libromatricula.registro_curso (id_curso, grado_curso, letra_curso, periodo_
 
 
 --
+-- Data for Name: registro_estado; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.registro_estado  FROM stdin;
+\.
+
+
+--
 -- Data for Name: registro_estudiante; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
 --
 
-COPY libromatricula.registro_estudiante (id_estudiante, rut_estudiante, dv_rut_estudiante, apellido_paterno_estudiante, apellido_materno_estudiante, nombres_estudiante, nombre_social_estudiante, fecha_nacimiento_estudiante, sexo_estudiante, fecha_registro, fecha_modificacion) FROM stdin;
+COPY libromatricula.registro_estudiante (id_estudiante, rut_estudiante, dv_rut_estudiante, apellido_paterno_estudiante, apellido_materno_estudiante, nombres_estudiante, nombre_social_estudiante, fecha_nacimiento_estudiante, sexo_estudiante, fecha_registro_estudiante, fecha_modificacion_estudiante) FROM stdin;
 1	20760743	6	ARIAS	PLAZA	EMILIA ANTONIA	\N	2010-04-08	F	2023-11-07 08:18:03.069282	2023-11-07 08:18:03.069282
 2	23030249	9	LAGOS	MONTESINO	HORACIO ANTONIO	\N	\N	M	2023-11-07 08:22:02.364783	2023-11-07 08:22:02.364783
+\.
+
+
+--
+-- Data for Name: registro_funcionario; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.registro_funcionario  FROM stdin;
 \.
 
 
@@ -1816,6 +1973,14 @@ COPY libromatricula.registro_matricula (id_registro_matricula, numero_matricula,
 25	1	2	715	\N	1	\N	\N	2023-11-07	\N	2024	1	2023-11-07 11:23:16.854403	2023-11-07 11:23:16.854403	\N
 24	1	2	715	\N	8	4	\N	2023-11-07	\N	2023	1	2023-11-07 10:51:44.625771	2023-11-07 10:51:44.625771	\N
 26	2	1	715	\N	2	\N	\N	2023-11-07	\N	2024	1	2023-11-07 16:07:42.856532	2023-11-07 16:07:42.856532	\N
+\.
+
+
+--
+-- Data for Name: tipo_funcionario; Type: TABLE DATA; Schema: libromatricula; Owner: postgres
+--
+
+COPY libromatricula.tipo_funcionario  FROM stdin;
 \.
 
 
@@ -16226,7 +16391,7 @@ COPY public.usuario (id_usuario, nombre_usuario, clave_usuario, id_funcionario, 
 16	14389665-K	055757a5b93e9789ec40458f42fc61dd	12	1	2023-05-29 10:23:26.280696	1	2023-06-08 11:41:53.656374
 23	22222222-2	cc7a84634199040d54376793842fe035	161	4	2023-09-21 12:42:30.467854	1	\N
 27	sandoval@gmail.com	43a1d724e34ae3d2135b866c83989fbd	2	1	2023-09-24 20:43:47.10618	1	\N
-3	msandoval	139e1a64683f3d884b180869da29f564	2	1	2023-03-09 12:57:13.217063	1	2023-11-05 22:09:46.770317
+3	msandoval	139e1a64683f3d884b180869da29f564	2	1	2023-03-09 12:57:13.217063	1	2023-11-07 21:23:20.592089
 \.
 
 
@@ -16319,6 +16484,13 @@ SELECT pg_catalog.setval('libromatricula.lista_sae_id_registro_seq', 2, true);
 --
 
 SELECT pg_catalog.setval('libromatricula.periodo_matricula_id_periodo_seq', 2, true);
+
+
+--
+-- Name: registro_apoderado_id_apoderado_seq; Type: SEQUENCE SET; Schema: libromatricula; Owner: postgres
+--
+
+SELECT pg_catalog.setval('libromatricula.registro_apoderado_id_apoderado_seq', 1, false);
 
 
 --
@@ -16577,6 +16749,14 @@ ALTER TABLE ONLY libromatricula.lista_sae
 
 ALTER TABLE ONLY libromatricula.periodo_matricula
     ADD CONSTRAINT periodo_matricula_pkey PRIMARY KEY (id_periodo);
+
+
+--
+-- Name: registro_apoderado registro_apoderado_pkey; Type: CONSTRAINT; Schema: libromatricula; Owner: postgres
+--
+
+ALTER TABLE ONLY libromatricula.registro_apoderado
+    ADD CONSTRAINT registro_apoderado_pkey PRIMARY KEY (id_apoderado);
 
 
 --
