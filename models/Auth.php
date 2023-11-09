@@ -41,7 +41,11 @@
         // método para validar token de sesión
         protected function validateToken() {
             $infoToken = $this->getToken();
-            $query = $this->preConsult("SELECT id_privilegio FROM usuario WHERE id_usuario = ?");
+            $query = $this->preConsult(
+                "SELECT u.id_privilegio 
+                FROM libromatricula.cuenta_usuario AS u 
+                WHERE u.id_cuenta_usuario = ?"
+            );
             try {
                 $query->execute([$infoToken->id_usuario]);
                 if ($query->rowCount() !== 1) {
@@ -91,11 +95,12 @@
             $user = Flight::request()->data->email;
             $password = Flight::request()->data->password;
             $statementEmail = $this->preConsult(
-                "SELECT usuario.id_usuario, usuario.nombre_usuario, usuario.clave_usuario, usuario.id_privilegio,
-                SPLIT_PART(funcionario.nombres_funcionario, ' ', 1) || ' ' || funcionario.ap_funcionario AS nombres_funcionario
-                FROM usuario 
-                INNER JOIN funcionario ON funcionario.id_funcionario = usuario.id_funcionario
-                WHERE nombre_usuario = ?"
+                "SELECT u.id_cuenta_usuario, u.nombre_cuenta_usuario, u.clave_cuenta_usuario, u.id_privilegio,
+                SPLIT_PART(f.nombres_funcionario, ' ', 1) || ' ' || f.apellido_paterno_funcionario
+                || ' ' || f.apellido_materno_funcionario AS nombres_funcionario
+                FROM libromatricula.cuenta_usuario AS u
+                INNER JOIN libromatricula.registro_funcionario AS f ON f.id_funcionario = u.id_funcionario
+                WHERE nombre_cuenta_usuario = ?;"
             );
 
             try {
@@ -103,7 +108,7 @@
                 if ($statementEmail->rowCount() === 1) {
                     $userAccount = $statementEmail->fetch(PDO::FETCH_OBJ);
 
-                    if (md5($password) !== $userAccount->clave_usuario) {
+                    if (md5($password) !== $userAccount->clave_cuenta_usuario) {
                         Flight::halt(406, json_encode([
                             "message" => "La contraseña ingresada es incorrecta",
                             "statusText" => "error password"
@@ -115,7 +120,7 @@
                     $payload = [
                         'exp' => $now + 3600,
                         // 'exp' => $now + 20,
-                        'id_usuario' => $userAccount->id_usuario,
+                        'id_usuario' => $userAccount->id_cuenta_usuario,
                         'id_privilegio' => $userAccount->id_privilegio
                     ];
                     
