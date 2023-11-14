@@ -183,6 +183,7 @@ class Student extends Auth {
         }
     }
 
+    // trabajar desde aqui
     public function updateStudent() {
         $this->validateToken();
         $student = Flight::request()->data;
