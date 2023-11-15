@@ -12,8 +12,6 @@ class Student extends Auth {
         parent::__construct();
     }
 
-    
-
     // metodo para obtener los datos del estudiantes
     // method to obtain student data
     public function getStudent($rut_student) {
@@ -128,7 +126,8 @@ class Student extends Auth {
             SET rut_estudiante = ?, dv_rut_estudiante = ?, 
             apellido_paterno_estudiante = ?, apellido_materno_estudiante = ?,
             nombres_estudiante = ?, nombre_social_estudiante = ?,
-            fecha_nacimiento_estudiante = ?, sexo_estudiante = ?
+            fecha_nacimiento_estudiante = ?, sexo_estudiante = ?,
+            fecha_modificacion_estudiante = CURRENT_DATE
             WHERE id_estudiante = ?;"
         );
 

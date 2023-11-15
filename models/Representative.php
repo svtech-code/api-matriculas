@@ -29,13 +29,14 @@
             }
         }
 
-        // modificar acceso a la base de datos
+        // método para obtener el nombre 
         public function getNameRepresentative($rut_representative) {
             $this->validateToken();
+
             $statementRepresentative = $this->preConsult(
-                "SELECT id_apoderado,
-                (nombres_apoderado || ' ' || ap_apoderado || ' ' || am_apoderado) AS nombres_apoderado
-                FROM apoderado
+                "SELECT id_apoderado, (nombres_apoderado || ' ' || apellido_paterno_apoderado
+                || ' ' || apellido_materno_apoderado) AS nombres_apoderado
+                FROM libromatricula.registro_apoderado
                 WHERE rut_apoderado = ?;"
             );
 
@@ -62,6 +63,15 @@
             } finally {
                 $this->closeConnection();
             }
+        }
+
+        public function updateRepresentative() {
+            $this->validateToken();
+
+            $statementUpdateRepresentative = $this->preConsult(
+                ""
+            );
+
         }
 
         // trabajar en el update del apoderado
