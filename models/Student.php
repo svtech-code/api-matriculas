@@ -12,53 +12,18 @@ class Student extends Auth {
         parent::__construct();
     }
 
-    public function getStudentAll() {
-        $this->validateToken();
-        $statmentStudent = $this->preConsult(
-            "SELECT (rut_estudiante || '-' || dv_rut_estudiante) AS rut_estudiante,
-                id_estudiante, nombres_estudiante, ap_estudiante, am_estudiante
-            FROM estudiante;"
-        );
-
-        try {
-            $statmentStudent->execute();
-            $students =  $statmentStudent->fetchAll(PDO::FETCH_ASSOC);
-            foreach($students as $student) {
-                $this->array[] = [
-                    "id_estudiante" => $student['id_estudiante'],
-                    "rut_estudiante" => $student['rut_estudiante'],
-                    "nombres_estudiante"  =>  $student['nombres_estudiante'],
-                    "ap_estudiante" => $student['ap_estudiante'],
-                    "am_estudiante" => $student['am_estudiante'],
-                ];
-            }
-            Flight::json($this->array);
-
-        } catch (Exception $error) {
-            Flight::halt(404, json_encode([
-                "message" => "Error: ". $error->getMessage(),
-            ]));
-
-        } finally {
-            $this->closeConnection();
-        }
-
-
-    }
+    
 
     // metodo para obtener los datos del estudiantes
     // method to obtain student data
     public function getStudent($rut_student) {
         $this->validateToken();
         $statmentStudent = $this->preConsult(
-            "SELECT id_estudiante, nombres_estudiante, nombre_social, ap_estudiante, 
-            am_estudiante, 
-            fecha_nacimiento,
-            sexo
-            -- to_char(fecha_nacimiento, 'DD / MM / YYYY') AS fecha_nacimiento, 
-            -- CASE WHEN sexo = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo
-            FROM estudiante
-            WHERE rut_estudiante = ?;"
+            "SELECT e.id_estudiante, e.nombres_estudiante, e.nombre_social_estudiante,
+            e.apellido_paterno_estudiante, e.apellido_materno_estudiante, 
+            e.fecha_nacimiento_estudiante, e.sexo_estudiante
+            FROM libromatricula.registro_estudiante AS e
+            WHERE e.rut_estudiante = ?;"
         );
 
         try {
@@ -73,11 +38,11 @@ class Student extends Auth {
             $this->array = [
                 "id" => $student->id_estudiante,
                 "nombres" => $student->nombres_estudiante,
-                "nombre_social" => $student->nombre_social,
-                "paterno" => $student->ap_estudiante,
-                "materno" => $student->am_estudiante,
-                "fecha_nacimiento" => $student->fecha_nacimiento,
-                "sexo" => $student->sexo,
+                "nombre_social" => $student->nombre_social_estudiante,
+                "paterno" => $student->apellido_paterno_estudiante,
+                "materno" => $student->apellido_materno_estudiante,
+                "fecha_nacimiento" => $student->fecha_nacimiento_estudiante,
+                "sexo" => $student->sexo_estudiante,
             ];
             Flight::json($this->array);
 
@@ -153,6 +118,49 @@ class Student extends Auth {
         }
     }
 
+    // metodo para actualizar los datos de un estudiante
+    public function updateStudent() {
+        $this->validateToken();
+
+        $student = Flight::request()->data;
+        $statementUpdateStudent = $this->preConsult(
+            "UPDATE libromatricula.registro_estudiante
+            SET rut_estudiante = ?, dv_rut_estudiante = ?, 
+            apellido_paterno_estudiante = ?, apellido_materno_estudiante = ?,
+            nombres_estudiante = ?, nombre_social_estudiante = ?,
+            fecha_nacimiento_estudiante = ?, sexo_estudiante = ?
+            WHERE id_estudiante = ?;"
+        );
+
+        try {
+            $statementUpdateStudent->execute([
+                $student->rut,
+                $student->dv_rut,
+                $student->paterno,
+                $student->materno,
+                $student->nombres,
+                ($student->nombre_social == '') ? null : $student->nombre_social,
+                $student->fecha_nacimiento,
+                $student->sexo,
+                intval($student->id)
+            ]);
+
+        } catch (Exception $error) {
+            Flight::halt(400, json_encode([
+                "message" => "Error: ". $error->getMessage()
+            ]));
+        } finally {
+            $this->closeConnection();
+        }
+    }
+
+    
+
+
+
+
+    // ================ cambiar a nuevo registro de estudiantes ====>
+
     public function setStudent() {
         // agregar validacion para evitar que un usuario sin privilegios pueda ingresar datos
         $this->validateToken();
@@ -183,29 +191,33 @@ class Student extends Auth {
         }
     }
 
-    // trabajar desde aqui
-    public function updateStudent() {
+    public function getStudentAll() {
         $this->validateToken();
-        $student = Flight::request()->data;
-        $statementUpdateStudent = $this->preConsult(
-            "UPDATE estudiante
-            SET rut_estudiante = ?, dv_rut_estudiante = ?, ap_estudiante = ?, am_estudiante = ?, nombres_estudiante = ?,
-            nombre_social = ?, fecha_nacimiento = ?, sexo = ?, fecha_ingreso = ?
-            WHERE id_estudiante = ?"
+        $statmentStudent = $this->preConsult(
+            "SELECT (rut_estudiante || '-' || dv_rut_estudiante) AS rut_estudiante,
+                id_estudiante, nombres_estudiante, ap_estudiante, am_estudiante
+            FROM estudiante;"
         );
 
         try {
-            $statementUpdateStudent->execute([$student->rut, $student->dv_rut, $student->paterno, $student->materno, $student->nombres, 
-            ($student->n_social == '') ? null : $student->n_social, 
-            $student->f_nacimiento, $student->sexo, $student->f_ingreso, intval($student->id)]);
-
-            $this->array = ["message" => "success"];
+            $statmentStudent->execute();
+            $students =  $statmentStudent->fetchAll(PDO::FETCH_ASSOC);
+            foreach($students as $student) {
+                $this->array[] = [
+                    "id_estudiante" => $student['id_estudiante'],
+                    "rut_estudiante" => $student['rut_estudiante'],
+                    "nombres_estudiante"  =>  $student['nombres_estudiante'],
+                    "ap_estudiante" => $student['ap_estudiante'],
+                    "am_estudiante" => $student['am_estudiante'],
+                ];
+            }
             Flight::json($this->array);
 
         } catch (Exception $error) {
-            Flight::halt(400, json_encode([
-                "message" => "Error: ". $error->getMessage()
+            Flight::halt(404, json_encode([
+                "message" => "Error: ". $error->getMessage(),
             ]));
+
         } finally {
             $this->closeConnection();
         }

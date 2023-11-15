@@ -29,6 +29,7 @@
             }
         }
 
+        // modificar acceso a la base de datos
         public function getNameRepresentative($rut_representative) {
             $this->validateToken();
             $statementRepresentative = $this->preConsult(
@@ -61,8 +62,10 @@
             } finally {
                 $this->closeConnection();
             }
-
         }
+
+        // trabajar en el update del apoderado
+        // trabajar en el ingreso de apoderado
     }
 
 
