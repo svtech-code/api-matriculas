@@ -72,18 +72,18 @@
                 to_char(m.fecha_alta_matricula, 'DD / MM / YYYY') AS fecha_alta,
                 to_char(m.fecha_baja_matricula, 'DD / MM / YYYY') AS fecha_baja,
                 to_char(m.fecha_matricula, 'DD / MM / YYYY') AS fecha_matricula,
-                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(estado.nombre_estado) AS estado, m.grado,
+                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, m.grado,
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
-                (apt.nombres_apoderado || ' ' || apt.ap_apoderado || ' ' || apt.am_apoderado) AS apoderado_titular,
-                ('+569-' || apt.telefono) AS telefono_titular,
+                (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS apoderado_titular,
+                ('+569-' || apt.telefono_apoderado) AS telefono_titular,
                 (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
-                (aps.nombres_apoderado || ' ' || aps.ap_apoderado || ' ' || aps.am_apoderado) AS apoderado_suplente,
-                ('+569-' || aps.telefono) AS telefono_suplente
+                (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
+                ('+569-' || aps.telefono_apoderado) AS telefono_suplente
                 FROM libromatricula.registro_matricula AS m
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                LEFT JOIN estado ON estado.id_estado = m.id_estado_matricula
-                LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
-                LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+                LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
+                LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+                LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY m.numero_matricula ASC;"
             );
@@ -137,13 +137,13 @@
                 ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
                 || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
                 m.id_apoderado_titular, apt.rut_apoderado AS rut_titular, apt.dv_rut_apoderado AS dv_rut_titular,
-                (apt.nombres_apoderado || ' ' || apt.ap_apoderado || ' ' || apt.am_apoderado) AS nombres_titular,
+                (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS nombres_titular,
                 m.id_apoderado_suplente, aps.rut_apoderado AS rut_suplente, aps.dv_rut_apoderado AS dv_rut_suplente,
-                (aps.nombres_apoderado || ' ' || aps.ap_apoderado || ' ' || aps.am_apoderado) AS nombres_suplente
+                (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS nombres_suplente
                 FROM libromatricula.registro_matricula AS m
                 LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante 
-                LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
-                LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+                LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+                LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 WHERE m.id_registro_matricula = ?;"
             );
 
@@ -329,7 +329,7 @@
 
         // ------- funcionalidades por trabajar
 
-        // trabajar las consultas SQL, para trabajar con la tabla registro_estudiante
+
         
     }
 

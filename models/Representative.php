@@ -65,6 +65,7 @@
             }
         }
 
+        // Método para actualizar datos del apoderado
         public function updateRepresentative() {
             $this->validateToken();
 
