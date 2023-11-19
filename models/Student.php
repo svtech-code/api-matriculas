@@ -127,18 +127,18 @@ class Student extends Auth {
             apellido_paterno_estudiante = ?, apellido_materno_estudiante = ?,
             nombres_estudiante = ?, nombre_social_estudiante = ?,
             fecha_nacimiento_estudiante = ?, sexo_estudiante = ?,
-            fecha_modificacion_estudiante = CURRENT_DATE
+            fecha_modificacion_estudiante = CURRENT_TIMESTAMP
             WHERE id_estudiante = ?;"
         );
 
         try {
             $statementUpdateStudent->execute([
                 $student->rut,
-                $student->dv_rut,
-                $student->paterno,
-                $student->materno,
-                $student->nombres,
-                ($student->nombre_social == '') ? null : $student->nombre_social,
+                strtoupper($student->dv_rut),
+                strtoupper($student->paterno),
+                strtoupper($student->materno),
+                strtoupper($student->nombres),
+                $student->nombre_social ? strtoupper($student->nombre_social) : null,
                 $student->fecha_nacimiento,
                 $student->sexo,
                 intval($student->id)

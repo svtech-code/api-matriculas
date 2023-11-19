@@ -254,12 +254,12 @@
             try {
                 $statementMatricula->execute([
                     intval($n_matricula), 
-                    $matricula->id_estudiante ? intval($matricula->id_estudiante) : null , 
-                    $matricula->id_titular ? intval($matricula->id_titular) : null,
+                    intval($matricula->id_estudiante), 
+                    intval($matricula->id_titular),
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
-                    $matricula->grado ? intval($matricula->grado) : null, 
-                    $matricula->fecha_matricula ? $matricula->fecha_matricula : null,
-                    $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
+                    intval($matricula->grado), 
+                    $matricula->fecha_matricula,
+                    intval($matricula->anio_lectivo),
                 ]);
 
                 $this->array = ["numero_matricual" => $n_matricula];
@@ -277,6 +277,7 @@
             
         }
 
+        // =======> desencadenar log de cambio de apoderados
         // método para actualizar una matrícula
         public function updateMatricula() {
             $this->validateToken();
@@ -285,7 +286,8 @@
             $statementUpdateMatricula = $this->preConsult(
                 "UPDATE libromatricula.registro_matricula
                 SET id_estudiante = ?, id_apoderado_titular = ?, 
-                id_apoderado_suplente = ?, fecha_matricula = ?
+                id_apoderado_suplente = ?, fecha_matricula = ?,
+                fecha_modificacion_matricula = CURRENT_TIMESTAMP
                 WHERE id_registro_matricula = ?;"
             );
 
