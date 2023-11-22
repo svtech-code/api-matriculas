@@ -282,22 +282,27 @@
         public function updateMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
+
+            // procesar el grado para verificar si el numero de matricula debe cambiar
             
+            // ver como manejar el numero de matricula
             $statementUpdateMatricula = $this->preConsult(
                 "UPDATE libromatricula.registro_matricula
-                SET id_estudiante = ?, id_apoderado_titular = ?, 
-                id_apoderado_suplente = ?, fecha_matricula = ?,
+                SET numero_matricula = ?, id_estudiante = ?, id_apoderado_titular = ?, 
+                id_apoderado_suplente = ?, grado = ?, fecha_matricula = ?,
                 fecha_modificacion_matricula = CURRENT_TIMESTAMP
                 WHERE id_registro_matricula = ?;"
             );
 
             try {
                 $statementUpdateMatricula->execute([
+                    intval($matricula->n_matricula),
                     intval($matricula->id_estudiante),
-                    $matricula->id_titular ? intval($matricula->id_titular) : null,
+                    intval($matricula->id_titular),
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null,
-                    $matricula->fecha_matricula ? $matricula->fecha_matricula : null,
-                    $matricula->id_matricula ? intval($matricula->id_matricula) : null,
+                    intval($matricula->grado),
+                    $matricula->fecha_matricula,
+                    intval($matricula->id_matricula),
                 ]);
 
             } catch(Exception $error) {

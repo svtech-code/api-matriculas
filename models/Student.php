@@ -68,7 +68,7 @@ class Student extends Auth {
             AND lista.periodo_matricula = ?);"
         );
 
-
+        // modificar consulta, para 
         $statmentStudent = $this->preConsult(
             "SELECT e.id_estudiante,
             (CASE WHEN e.nombre_social_estudiante IS NULL
@@ -84,7 +84,7 @@ class Student extends Auth {
             if ($periodo !== date('Y')) {
                 $statementSearchStudent->execute([$rut_student, $periodo]);
                 $responseSearch = $statementSearchStudent->fetchColumn();
-    
+                $this->array["grado"] = "prueba"; // ver esta parte
                 if (!$responseSearch) {
                     Flight::halt(400, json_encode([
                         "message" => "El rut no esta en lista SAE !"
