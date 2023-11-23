@@ -181,28 +181,53 @@
         }
 
         // método para obtener el número de matricula correlativo por nivel
-        protected function getNumberMatricula($grade) {
-
-            // trabajar en correlativo, obteniendo la informacion y trabajandola con php
+        protected function getNumberMatricula($grade, $periodo) {
 
             if ($grade >= 1 && $grade <= 4) {
                 $statementNumberMatricula = $this->preConsult(
-                    "SELECT COALESCE(MAX(numero_matricula) + 1, 1) AS numero_matricula
+                    "SELECT numero_matricula
                     FROM libromatricula.registro_matricula
-                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = 2024;"
+                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?
+                    ORDER BY numero_matricula ASC;"
                 );
             } elseif ($grade >= 7 && $grade <= 8) {
                 $statementNumberMatricula = $this->preConsult(
-                    "SELECT COALESCE(MAX(numero_matricula) + 1, 1) AS numero_matricula
+                    "SELECT numero_matricula
                     FROM libromatricula.registro_matricula
-                    WHERE grado BETWEEN 7 AND 8 AND anio_lectivo_matricula = 2024;"
+                    WHERE grado BETWEEN 7 AND 8 AND anio_lectivo_matricula = ?
+                    ORDER BY numero_matricula ASC;"
                 );
             }
 
             try {
-                $statementNumberMatricula->execute();
-                $n_matricula = $statementNumberMatricula->fetch(PDO::FETCH_OBJ);
-                return $n_matricula->numero_matricula;
+                $statementNumberMatricula->execute([$periodo]);
+                $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
+
+                // obtener los valores del rango inicial y final
+                $rango_inicial = min($rango_matricula);
+                $rango_final = max($rango_matricula);
+                $numero_matricula = $rango_inicial;
+
+                // recorrer el rango de numero de matriculas obtenido en la consulta
+                foreach ($rango_matricula as $rango) {
+                    // verificar si el número esta dentro del rango
+                    if ($rango >= $rango_inicial && $rango <= $rango_final) {
+                        // si el número es el correlativo esperado, incrementar el correlativo
+                        if ($rango == $numero_matricula) {
+                            $numero_matricula++;
+                        } else {
+                            // si falta un número en el rango, ese será el correlativo
+                            break;
+                        }
+                    }
+                }
+
+                // si todos los números estan presentes, el correlativo será el siguiente después del máximo en el rango
+                if ($numero_matricula > $rango_final) {
+                    $numero_matricula = $rango_final + 1;
+                }
+
+                return $numero_matricula;
 
             } catch (Exception $error) {
                 Flight::halt(400, json_encode([
@@ -240,7 +265,7 @@
         public function setMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
-            $n_matricula = $this->getNumberMatricula($matricula->grado);
+            $n_matricula = $this->getNumberMatricula($matricula->grado, $matricula->anio_lectivo);
 
             $this->verifStudentMatricula(
                 $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
@@ -286,7 +311,24 @@
             $this->validateToken();
             $matricula = Flight::request()->data;
 
-            // procesar el grado para verificar si el numero de matricula debe cambiar
+            // obtener nivel educativo
+            if ($grade >= 1 && $grade <= 4) {
+                // media
+                return;
+            } elseif ($grade >= 7 && $grade <= 8) {
+                // básica
+                return;
+            }
+
+            // comprobar cambio de nivel
+            $statementCheckGrade = $this->preConsult(
+                "SELECT CASE
+                WHEN grado IN (7,8) THEN 'Básica'
+                WHEN grado BETWEEN 1 AND 4 THEN 'Media'
+                END AS nivel_educativo
+                FROM libromatricula.registro_matricula
+                WHERE id_registro_matricula = ?;"
+            );
             
             // ver como manejar el numero de matricula
             $statementUpdateMatricula = $this->preConsult(
@@ -298,6 +340,9 @@
             );
 
             try {
+
+                $statementCheckGrade->execute([$matricula->id_matricula]);
+
                 $statementUpdateMatricula->execute([
                     intval($matricula->n_matricula),
                     intval($matricula->id_estudiante),
@@ -316,6 +361,61 @@
             } finally {
                 $this->closeConnection();
             }
+        }
+
+        public function pruebaNumeroMatricula($grade, $periodo) {
+            if ($grade >= 1 && $grade <= 4) {
+                $statementNumberMatricula = $this->preConsult(
+                    "SELECT numero_matricula
+                    FROM libromatricula.registro_matricula
+                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?
+                    ORDER BY numero_matricula ASC;"
+                );
+            } elseif ($grade >= 7 && $grade <= 8) {
+                $statementNumberMatricula = $this->preConsult(
+                    "SELECT numero_matricula
+                    FROM libromatricula.registro_matricula
+                    WHERE grado BETWEEN 7 AND 8 AND anio_lectivo_matricula = ?
+                    ORDER BY numero_matricula ASC;"
+                );
+            }
+
+            try {
+                $statementNumberMatricula->execute([$periodo]);
+                $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
+
+                // obtener los valores del rango inicial y final
+                $rango_inicial = min($rango_matricula);
+                $rango_final = max($rango_matricula);
+                $correlativo = $rango_inicial;
+
+                // recorrer el array de numeros
+                foreach ($rango_matricula as $rango) {
+                    // verificar si el número esta dentro del rango
+                    if ($rango >= $rango_inicial && $rango <= $rango_final) {
+                        // si el número es el correlativo esperado, incrementar el correlativo
+                        if ($rango == $correlativo) {
+                            $correlativo++;
+                        } else {
+                            // si falta un número en el rango, ese será el correlativo
+                            break;
+                        }
+                    }
+                }
+
+                // si todos los números estan presentes, el correlativo será el siguiente después del máximo en el rango
+                if ($correlativo > $rango_final) {
+                    $correlativo = $rango_final + 1;
+                }
+                
+
+                Flight::json($correlativo);
+
+            } catch (Exception $error) {
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+            } 
         }
 
 
