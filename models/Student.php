@@ -60,7 +60,8 @@ class Student extends Auth {
         $this->validateToken();
         $responseSearch = false;
 
-        // devuelve un booleano
+        // @booleano
+        // verificación en lista SAE 
         $statementSearchStudent = $this->preConsult(
             "SELECT EXISTS (SELECT lista.rut_estudiante
             FROM libromatricula.lista_sae AS lista
@@ -68,7 +69,8 @@ class Student extends Auth {
             AND lista.periodo_matricula = ?);"
         );
 
-        // modificar consulta, para 
+        // @string
+        // consulta del rut y nombres del estudiante 
         $statmentStudent = $this->preConsult(
             "SELECT e.id_estudiante,
             (CASE WHEN e.nombre_social_estudiante IS NULL
@@ -79,19 +81,35 @@ class Student extends Auth {
             WHERE e.rut_estudiante = ?"
         );
 
+        // @integer
+        // consulta para obtener el grado precargado en proceso matricula
+        $statementGradeStudent = $this->preConsult(
+            "SELECT l.grado_matricula
+            FROM libromatricula.lista_sae as l
+            WHERE l.rut_estudiante = ? AND l.periodo_matricula = ?;"
+        );
+
         try {
 
             if ($periodo !== date('Y')) {
+                // consulta de estudiante en lista SAE
                 $statementSearchStudent->execute([$rut_student, $periodo]);
                 $responseSearch = $statementSearchStudent->fetchColumn();
-                $this->array["grado"] = "prueba"; // ver esta parte
+                
                 if (!$responseSearch) {
                     Flight::halt(400, json_encode([
                         "message" => "El rut no esta en lista SAE !"
                     ]));
                 } 
+
+                // obtener el grado del estudiante SAE
+                $statementGradeStudent->execute([$rut_student, $periodo]);
+                $gradeStudent = $statementGradeStudent->fetch(PDO::FETCH_OBJ);
+                $this->array["grado"] = $gradeStudent->grado_matricula;
+                
             }
 
+            // consulta de estudiante, en la tabla estudiante
             $statmentStudent->execute([$rut_student]);
             $student = $statmentStudent->fetch(PDO::FETCH_OBJ);
             if (!$student) {
@@ -99,11 +117,9 @@ class Student extends Auth {
                     "message" => "Sin registro de estudiante !"
                 ]));
             }
-
-            $this->array = [
-                "id" => $student->id_estudiante,
-                "nombres" => $student->estudiante,
-            ];
+            
+            $this->array["id"] = $student->id_estudiante;
+            $this->array["nombres"] = $student->estudiante;
             Flight::json($this->array);
 
         } catch(Exception $error) {
@@ -120,7 +136,10 @@ class Student extends Auth {
     public function updateStudent() {
         $this->validateToken();
 
+        // obtencin de los datos
         $student = Flight::request()->data;
+
+        // query para actualizar los datos de un estudiante
         $statementUpdateStudent = $this->preConsult(
             "UPDATE libromatricula.registro_estudiante
             SET rut_estudiante = ?, dv_rut_estudiante = ?, 

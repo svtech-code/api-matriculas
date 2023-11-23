@@ -182,6 +182,9 @@
 
         // método para obtener el número de matricula correlativo por nivel
         protected function getNumberMatricula($grade) {
+
+            // trabajar en correlativo, obteniendo la informacion y trabajandola con php
+
             if ($grade >= 1 && $grade <= 4) {
                 $statementNumberMatricula = $this->preConsult(
                     "SELECT COALESCE(MAX(numero_matricula) + 1, 1) AS numero_matricula
