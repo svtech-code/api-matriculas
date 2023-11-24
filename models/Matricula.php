@@ -204,7 +204,7 @@
                 $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
 
                 // obtener los valores del rango inicial y final
-                $rango_inicial = min($rango_matricula);
+                $rango_inicial = 1;
                 $rango_final = max($rango_matricula);
                 $numero_matricula = $rango_inicial;
 
@@ -310,20 +310,16 @@
         public function updateMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
+            $newLevel = "";
 
-            // obtener nivel educativo
-            if ($grade >= 1 && $grade <= 4) {
-                // media
-                return;
-            } elseif ($grade >= 7 && $grade <= 8) {
-                // básica
-                return;
-            }
+            // obtener nivel educativo a actualizar
+            if ($matricula->grado >= 1 && $matricula->grado <= 4) $newLevel = "Media";
+            if ($matricula->grado >= 7 && $matricula->grado <= 8) $newLevel = "Basica";
 
             // comprobar cambio de nivel
             $statementCheckGrade = $this->preConsult(
                 "SELECT CASE
-                WHEN grado IN (7,8) THEN 'Básica'
+                WHEN grado IN (7,8) THEN 'Basica'
                 WHEN grado BETWEEN 1 AND 4 THEN 'Media'
                 END AS nivel_educativo
                 FROM libromatricula.registro_matricula
@@ -340,11 +336,18 @@
             );
 
             try {
-
+                // se obtiene el nivel de la matricula
                 $statementCheckGrade->execute([$matricula->id_matricula]);
+                $oldLevel = $statementCheckGrade->fetch(PDO::FETCH_OBJ);
 
+                // se compara los niveles y se asigna el numero de matricula
+                $numero_matricula = ($newLevel === $oldLevel->nivel_educativo) 
+                    ? $matricula->n_matricula
+                    : $this->getNumberMatricula($matricula->grado, $matricula->anio_lectivo);
+
+                // actulizacion de la matricula
                 $statementUpdateMatricula->execute([
-                    intval($matricula->n_matricula),
+                    $numero_matricula,
                     intval($matricula->id_estudiante),
                     intval($matricula->id_titular),
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null,
@@ -352,6 +355,9 @@
                     $matricula->fecha_matricula,
                     intval($matricula->id_matricula),
                 ]);
+
+                // se devuelve el numero de matricula
+                Flight::json($numero_matricula);
 
             } catch(Exception $error) {
                 Flight::halt(400, json_encode([
