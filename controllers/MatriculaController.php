@@ -9,8 +9,6 @@
     Flight::route('PUT /matricula/updateMatricula', [$matricula, "updateMatricula"]);
 
 
-    // prueba de correlativo
-    // Flight::route('GET /matricula/getCorrelativo/@grade', [$matricula, "pruebaNumeroMatricula"]);
     
     
     // Flight::route('DELETE /matricula/deleteMatricula/@id', [$matricula, "deleteMatricula"]);

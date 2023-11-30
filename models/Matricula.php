@@ -72,7 +72,8 @@
                 to_char(m.fecha_alta_matricula, 'DD / MM / YYYY') AS fecha_alta,
                 to_char(m.fecha_baja_matricula, 'DD / MM / YYYY') AS fecha_baja,
                 to_char(m.fecha_matricula, 'DD / MM / YYYY') AS fecha_matricula,
-                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, m.grado,
+                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, 
+                m.grado, (c.grado_curso::text || c.letra_curso) AS curso,
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
                 (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS apoderado_titular,
                 ('+569-' || apt.telefono_apoderado) AS telefono_titular,
@@ -84,6 +85,7 @@
                 LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
                 LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
                 LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+                LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY m.numero_matricula ASC;"
             );
@@ -106,6 +108,7 @@
                         "sexo" => $matricula->sexo,
                         "estado" => $matricula->estado,
                         "grado" => $matricula->grado,
+                        "curso"=> $matricula->curso,
                         "rut_titular" => $matricula->rut_apoderado_titular,
                         "apoderado_titular" => $matricula->apoderado_titular,
                         "telefono_titular" => $matricula->telefono_titular,
@@ -367,61 +370,6 @@
             } finally {
                 $this->closeConnection();
             }
-        }
-
-        public function pruebaNumeroMatricula($grade, $periodo) {
-            if ($grade >= 1 && $grade <= 4) {
-                $statementNumberMatricula = $this->preConsult(
-                    "SELECT numero_matricula
-                    FROM libromatricula.registro_matricula
-                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?
-                    ORDER BY numero_matricula ASC;"
-                );
-            } elseif ($grade >= 7 && $grade <= 8) {
-                $statementNumberMatricula = $this->preConsult(
-                    "SELECT numero_matricula
-                    FROM libromatricula.registro_matricula
-                    WHERE grado BETWEEN 7 AND 8 AND anio_lectivo_matricula = ?
-                    ORDER BY numero_matricula ASC;"
-                );
-            }
-
-            try {
-                $statementNumberMatricula->execute([$periodo]);
-                $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
-
-                // obtener los valores del rango inicial y final
-                $rango_inicial = min($rango_matricula);
-                $rango_final = max($rango_matricula);
-                $correlativo = $rango_inicial;
-
-                // recorrer el array de numeros
-                foreach ($rango_matricula as $rango) {
-                    // verificar si el número esta dentro del rango
-                    if ($rango >= $rango_inicial && $rango <= $rango_final) {
-                        // si el número es el correlativo esperado, incrementar el correlativo
-                        if ($rango == $correlativo) {
-                            $correlativo++;
-                        } else {
-                            // si falta un número en el rango, ese será el correlativo
-                            break;
-                        }
-                    }
-                }
-
-                // si todos los números estan presentes, el correlativo será el siguiente después del máximo en el rango
-                if ($correlativo > $rango_final) {
-                    $correlativo = $rango_final + 1;
-                }
-                
-
-                Flight::json($correlativo);
-
-            } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-            } 
         }
 
 
