@@ -206,6 +206,11 @@
                 $statementNumberMatricula->execute([$periodo]);
                 $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
 
+                // Si no hay datos en la tabla, comenzar desde 1
+                if (empty($rango_matricula)) {
+                    return 1;
+                }
+
                 // obtener los valores del rango inicial y final
                 $rango_inicial = 1;
                 $rango_final = max($rango_matricula);
