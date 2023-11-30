@@ -87,7 +87,7 @@
                 LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                 WHERE m.anio_lectivo_matricula = ?
-                ORDER BY m.numero_matricula ASC;"
+                ORDER BY m.numero_matricula DESC;"
             );
 
             try {
