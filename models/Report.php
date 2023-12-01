@@ -113,6 +113,12 @@
                 // ejecucion de la consulta SQL
                 $statementReport->execute([$rut, intval($periodo)]);
                 $report = $statementReport->fetch(PDO::FETCH_OBJ);
+                
+                if (!$report) {
+                    Flight::halt(400, json_encode([
+                        "message" => "Matricula sin curso asignado",
+                    ]));
+                }
 
                 // ruta de las plantillas de word
                 $templateCertificadoAlumnoRegular = './document/certificadoAlumnoRegular.docx';
