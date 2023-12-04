@@ -7,6 +7,8 @@
     use PDO;
     use PhpOffice\PhpWord\TemplateProcessor;
     use PhpOffice\PhpWord\Settings;
+    use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
+    use PhpOffice\PhpSpreadsheet\Style\{Color, Font};
 
     class Report extends Auth {
         private $tempDir = './document';
@@ -37,6 +39,7 @@
         public function getCertificadoMatricula($rut, $periodo) {
             $this->validateToken();
 
+            // consulta SQL
             $statementReport = $this->preConsult(
                 "SELECT 
                 (e.nombres_estudiante || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
@@ -88,7 +91,9 @@
                 Flight::halt(400, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
-
+            
+            } finally {
+                $this->closeConnection();
             }
         }
 
@@ -158,11 +163,103 @@
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
+            } finally {
+                $this->closeConnection();
             }
 
         }
 
-        public function getReportAllMatricula() {
+        public function getReportMatricula($dateFrom, $dateTo, $periodo) {
+            $this->validateToken();
+
+            // consulta SQL
+            $statementReportMatricula = $this->preConsult(
+                "SELECT m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                e.apellido_paterno_estudiante, e.apellido_materno_estudiante, e.nombres_estudiante,
+                e.nombre_social_estudiante, e.fecha_nacimiento_estudiante, e.sexo_estudiante,
+                (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) AS rut_titular,
+                (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_suplente
+                FROM libromatricula.registro_matricula AS m
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+                LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+                WHERE m.anio_lectivo_matricula = ?
+                AND m.fecha_registro_matricula >= ? AND m.fecha_registro_matricula <= ?
+                ORDER BY e.apellido_paterno_estudiante ASC;"
+            );
+
+            try {
+                // ejecucion de la consulta SQL
+                $statementReportMatricula->execute([intval($periodo), $dateFrom, $dateTo]);
+                $reportMatricula = $statementReportMatricula->fetchAll(PDO::FETCH_OBJ);
+
+                $file = new Spreadsheet();
+                $file
+                    ->getProperties()
+                    ->setCreator("Dpto. Informática")
+                    ->setLastModifiedBy('Informática')
+                    ->setTitle('Registro matrícula');
+
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle("Registro de matrículas");
+                $sheetActive->setShowGridLines(false);
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+                // $sheetActive->getStyle('A3:Y3')->getFont()->setBold(true)->setSize(12);
+                // $sheetActive->setAutoFilter('A3:Y3');
+
+                // título del excel
+                $sheetActive->mergeCells('A1:D1');
+                $sheetActive->setCellValue('A1', 'Registro de matrículas periodo '. $periodo);
+
+                // ancho de las celdas
+                $sheetActive->getColumnDimension('A')->setWidth(18);
+
+                // alineacion del contenido de las celdas
+                // $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('J')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
+
+                // titulo de la tabla
+                $sheetActive->setCellValue('A3', 'N° MATRÍCULA');
+
+                $fila = 4;
+                foreach ($reportMatricula as $report) {
+                    $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
+                }
+
+                // $writer = IOFactory::createWriter($file, 'Xlsx');
+
+                // ob_start();
+                // $writer->save('php://output');
+                // $documentData = ob_get_contents();
+                // ob_end_clean();
+
+                // $file = array ( "data" => 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; base64,'.base64_encode($documentData));
+                // Flight::json($file);
+
+
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment;filename="ReporteMatricula_' . getCurrentYear() . '.xlsx"');
+                header('Cache-Control: max-age=0');
+
+                $writer = IOFactory::createWriter($file, 'Xlsx');
+                $writer->save('php://output');
+
+            } catch (Exception $error) {
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+
+            } finally {
+                $this->closeConnection();
+            }
+
+
+            // Flight::halt(400, json_encode([
+            //     "message" => $dateTo
+            // ]));
+
 
             // consulta SQL para generar excel
             
