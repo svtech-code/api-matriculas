@@ -209,38 +209,31 @@
                 // $sheetActive->setAutoFilter('A3:Y3');
 
                 // título del excel
-                $sheetActive->mergeCells('A1:D1');
+                // $sheetActive->mergeCells('A1:D1');
                 $sheetActive->setCellValue('A1', 'Registro de matrículas periodo '. $periodo);
 
                 // ancho de las celdas
                 $sheetActive->getColumnDimension('A')->setWidth(18);
 
                 // alineacion del contenido de las celdas
+                $sheetActive->getStyle('A')->getAlignment()->setHorizontal('center');
                 // $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
                 // $sheetActive->getStyle('J')->getAlignment()->setHorizontal('center');
-                // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
 
                 // titulo de la tabla
-                $sheetActive->setCellValue('A3', 'N° MATRÍCULA');
+                $sheetActive->setCellValue('A3', 'MATRÍCULA');
 
                 $fila = 4;
                 foreach ($reportMatricula as $report) {
                     $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
+
+                    $fila++;
                 }
-
-                // $writer = IOFactory::createWriter($file, 'Xlsx');
-
-                // ob_start();
-                // $writer->save('php://output');
-                // $documentData = ob_get_contents();
-                // ob_end_clean();
-
-                // $file = array ( "data" => 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; base64,'.base64_encode($documentData));
-                // Flight::json($file);
 
 
                 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                header('Content-Disposition: attachment;filename="ReporteMatricula_' . getCurrentYear() . '.xlsx"');
+                header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
                 header('Cache-Control: max-age=0');
 
                 $writer = IOFactory::createWriter($file, 'Xlsx');
@@ -254,40 +247,6 @@
             } finally {
                 $this->closeConnection();
             }
-
-
-            // Flight::halt(400, json_encode([
-            //     "message" => $dateTo
-            // ]));
-
-
-            // consulta SQL para generar excel
-            
-            // -- TRABAJAR PARA REPORTE EXCEL
-            // SELECT m.numero_matricula, m.grado, 
-            // CASE WHEN m.id_curso IS NULL THEN null ELSE (c.grado_curso::text || c.letra_curso) END AS curso,
-            // m.numero_lista_curso, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
-            // e.apellido_paterno_estudiante, e.apellido_materno_estudiante, e.nombres_estudiante,
-            // e.nombre_social_estudiante, e.fecha_nacimiento_estudiante, e.sexo_estudiante, m.fecha_matricula,
-            // m.fecha_alta_matricula, m.fecha_baja_matricula,
-            // (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) AS rut_titular,
-            // apt.ap_apoderado AS ap_titular, apt.am_apoderado AS am_titular, apt.nombres_apoderado AS nombres_titular,
-            // (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_suplente,
-            // aps.ap_apoderado AS ap_suplente, aps.am_apoderado AS am_suplente, aps.nombres_apoderado AS nombres_suplente
-
-            // --trabajar estado de la matricula
-            // --CASE WHEN matricula.id_estado = 1 THEN 'Matriculado(a)'
-            // --WHEN matricula.id_estado = 4 THEN 'Retirado(a)'
-            // --WHEN matricula.id_estado = 5 THEN 'Suspendido(a)' END AS estado_matricula
-            // --trabajar estado de la matricula
-
-            // FROM libromatricula.registro_matricula AS m
-            // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-            // INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-            // LEFT JOIN apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
-            // LEFT JOIN apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
-            // --LEFT JOIN estado ON estado.id_estado = matricula.id_estado
-            // WHERE anio_lectivo_matricula = 2024
 
         }
 
