@@ -291,7 +291,7 @@
                 $statementMatricula->execute([
                     intval($n_matricula), 
                     intval($matricula->id_estudiante), 
-                    intval($matricula->id_titular),
+                    $matricula->id_titular ? intval($matricula->id_titular): null,
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
                     intval($matricula->grado), 
                     $matricula->fecha_matricula,

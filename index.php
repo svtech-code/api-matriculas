@@ -18,6 +18,9 @@ require_once "./controllers/AuthController.php";
 // MATRICULA -------------------------------------------------------->
 require_once "./controllers/MatriculaController.php";
 
+// COURSE -------------------------------------------------------->
+require_once "./controllers/CourseController.php";
+
 // STUDENT ---------------------------------------------------------->
 require_once "./controllers/StudentController.php";
 
@@ -29,8 +32,5 @@ require_once "./controllers/ReportController.php";
 
 
 Flight::start();
-
-
-
 
 ?>

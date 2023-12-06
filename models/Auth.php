@@ -63,31 +63,6 @@
                 ]));
             }
             
-
-            // $rows = $query->fetch();
-
-            // try {
-            //     $query->execute([$infoToken->id_usuario]);
-            //     $userAccount = $query->fetch(PDO::FETCH_OBJ);
-    
-            //     $this->array["validate"] = true;
-            //     if ($userAccount->id_privilegio === $requiredPrivilege) $this->array["privilege"] = true;
-
-            //     Flight::json($this->array);
-
-            // } catch (Exception $error) {
-            //     Flight::halt(401, json_encode([
-            //         "message" => "Error: ". $error->getMessage(),
-            //     ]));
-            // }
-
-            // $rows = $query->fetchColumn(); // respaldo
-            // return $rows; // respaldo
-
-            // if ($query->rowCount() === 1) {
-            //     return Flight::json(true);
-            // }
-            // return Flight::json(false);
         }
 
         // método para verificar cuenta de usuario y fevolver token de sesion
