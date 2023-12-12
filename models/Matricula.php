@@ -378,19 +378,49 @@
         }
 
 
+        // método para obtener estado del proceso de matrícula en curso
+        public function StatusProcessMatricula($periodo) {
+            $this->validateToken();
 
+            $statementStatusProcessMatricula = $this->preConsult(
+                "SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
+                e.nombres_estudiante ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
+                || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
+                COUNT(m.id_registro_matricula) > 0 AS estado_matricula, m.fecha_matricula
+                FROM libromatricula.lista_sae as l
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.rut_estudiante = l.rut_estudiante
+                LEFT JOIN libromatricula.registro_matricula AS m ON m.id_estudiante = e.id_estudiante AND m.anio_lectivo_matricula = ?
+                WHERE l.periodo_matricula = ?
+                GROUP BY e.id_estudiante, l.grado_matricula, m.fecha_matricula
+                ORDER BY l.grado_matricula DESC;"
+            );
 
-        
+            try {
+                $statementStatusProcessMatricula->execute([intval($periodo), intval($periodo)]);
+                $statusProcessMatricula = $statementStatusProcessMatricula->fetchAll(PDO::FETCH_OBJ);
+                foreach($statusProcessMatricula as $statusProcess) {
+                    $this->array[] = [
+                        "rut_estudiante" => $statusProcess->rut_estudiante,
+                        "grado_matricula" => $statusProcess->grado_matricula,
+                        "nombres_estudiantes" => $statusProcess->nombres_estudiante,
+                        "estado_matricula" => $statusProcess->estado_matricula,
+                        "fecha_matricula" => $statusProcess->fecha_matricula,
+                    ];
+                }
 
+                Flight::json($this->array);
 
+            } catch (Exception $error) {
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
 
+            } finally {
+                $this->closeConnection();
+            }
 
-
-
-
-
-
-        // ------- trabajando en las funcionalidades
+        }
 
 
 

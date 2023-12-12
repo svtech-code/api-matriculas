@@ -93,7 +93,7 @@
                     $now = strtotime("now");
                     $key = $_ENV['JWT_KEY'];
                     $payload = [
-                        'exp' => $now + 3600,
+                        'exp' => $now + 13600,
                         // 'exp' => $now + 20,
                         'id_usuario' => $userAccount->id_cuenta_usuario,
                         'id_privilegio' => $userAccount->id_privilegio
