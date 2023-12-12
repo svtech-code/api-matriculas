@@ -387,12 +387,12 @@
                 l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
                 e.nombres_estudiante ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
                 || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
-                COUNT(m.id_registro_matricula) > 0 AS estado_matricula, m.fecha_matricula
+                l.estudiante_nuevo, COUNT(m.id_registro_matricula) > 0 AS estado_matricula, m.fecha_matricula
                 FROM libromatricula.lista_sae as l
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.rut_estudiante = l.rut_estudiante
                 LEFT JOIN libromatricula.registro_matricula AS m ON m.id_estudiante = e.id_estudiante AND m.anio_lectivo_matricula = ?
                 WHERE l.periodo_matricula = ?
-                GROUP BY e.id_estudiante, l.grado_matricula, m.fecha_matricula
+                GROUP BY e.id_estudiante, l.grado_matricula, m.fecha_matricula, l.estudiante_nuevo
                 ORDER BY l.grado_matricula DESC;"
             );
 
@@ -403,7 +403,8 @@
                     $this->array[] = [
                         "rut_estudiante" => $statusProcess->rut_estudiante,
                         "grado_matricula" => $statusProcess->grado_matricula,
-                        "nombres_estudiantes" => $statusProcess->nombres_estudiante,
+                        "nombres_estudiante" => $statusProcess->nombres_estudiante,
+                        "estudiante_nuevo" => $statusProcess->estudiante_nuevo,
                         "estado_matricula" => $statusProcess->estado_matricula,
                         "fecha_matricula" => $statusProcess->fecha_matricula,
                     ];
