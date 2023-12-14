@@ -35,7 +35,7 @@
             $this->currentMonth = date('F');
         }
 
-        // metodo para obtener certificado de matricula
+        // método para obtener certificado de matricula
         public function getCertificadoMatricula($rut, $periodo) {
             $this->validateToken();
 
@@ -97,7 +97,7 @@
             }
         }
 
-        // metodo para obtener certificado de alumno regular
+        // método para obtener certificado de alumno regular
         public function getCertificadoAlumnoRegular($rut, $periodo) {
             $this->validateToken();
 
@@ -169,10 +169,11 @@
 
         }
 
+        // método para obtener reporte de matrícula
         public function getReportMatricula($dateFrom, $dateTo, $periodo) {
             $this->validateToken();
 
-            // consulta SQL
+            // sentencia SQL
             $statementReportMatricula = $this->preConsult(
                 "SELECT m.numero_matricula, m.grado, (c.grado_curso || c.letra_curso) AS curso,
                 (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
@@ -204,7 +205,7 @@
                 $file = new Spreadsheet();
                 $file
                     ->getProperties()
-                    ->setCreator("Dpto. Informática")
+                    ->setCreator('Dpto. Informática')
                     ->setLastModifiedBy('Informática')
                     ->setTitle('Registro matrícula');
 
@@ -213,8 +214,8 @@
                 $sheetActive->setTitle("Registro de matrículas");
                 $sheetActive->setShowGridLines(false);
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
-                // $sheetActive->getStyle('A3:Y3')->getFont()->setBold(true)->setSize(12);
-                // $sheetActive->setAutoFilter('A3:Y3');
+                $sheetActive->setAutoFilter('A3:W3');
+                $sheetActive->getStyle('A3:W3')->getFont()->setBold(true)->setSize(12);
 
                 // título del excel
                 // $sheetActive->mergeCells('A1:D1');
@@ -250,8 +251,7 @@
                 // alineacion del contenido de las celdas
                 $sheetActive->getStyle('A:D')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('K')->getAlignment()->setHorizontal('center');
-                // $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');                
 
                 // titulo de la tabla
                 $sheetActive->setCellValue('A3', 'MATRÍCULA');
@@ -265,7 +265,6 @@
                 $sheetActive->setCellValue('I3', 'NOMBRE_SOCIAL');
                 $sheetActive->setCellValue('J3', 'FECHA_NACIMIENTO');
                 $sheetActive->setCellValue('K3', 'SEXO_ESTUDIANTE');
-
 
                 // datos apoderado titular
                 $sheetActive->setCellValue('L3', 'RUT_TITULAR');
@@ -284,7 +283,6 @@
                 $sheetActive->setCellValue('W3', 'DIRECCOIN_SUPLENTE');
 
                 // agregar el estado de la matricula !!
-
 
                 $fila = 4;
                 foreach ($reportMatricula as $report) {
@@ -333,6 +331,106 @@
             } finally {
                 $this->closeConnection();
             }
+
+        }
+
+        // método para obtener reporte del proceso de matrícula
+        public function getReportProcessMatricula($periodo) {
+            $this->validateToken();
+
+            // sentencia SQL
+            $statementReportProcessMatricula = $this->preConsult(
+                "SELECT m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
+                e.nombres_estudiante ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
+                || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
+                l.estudiante_nuevo, COUNT(m.id_registro_matricula) > 0 AS estado_matricula, m.fecha_matricula
+                FROM libromatricula.lista_sae as l
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.rut_estudiante = l.rut_estudiante
+                LEFT JOIN libromatricula.registro_matricula AS m ON m.id_estudiante = e.id_estudiante AND m.anio_lectivo_matricula = ?
+                WHERE l.periodo_matricula = ?
+                GROUP BY e.id_estudiante, l.grado_matricula, m.fecha_matricula, l.estudiante_nuevo, m.numero_matricula
+                ORDER BY l.grado_matricula DESC;"
+            );
+
+            try {
+                // ejecución de la sentencia SQL
+                $statementReportProcessMatricula->execute([intval($periodo), intval($periodo)]);
+                $reportProcessMatricula = $statementReportProcessMatricula->fetchAll(PDO::FETCH_OBJ);
+
+                // creación del objeto excel
+                $file = new Spreadsheet();
+                $file
+                    ->getProperties()
+                    ->setCreator('Dpto. Informática')
+                    ->setLastModifiedBy('Informática')
+                    ->setTitle('Registro proceso matrícula');
+
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle('Registro proceso matrícula');
+                $sheetActive->setShowGridlines(false);
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+                $sheetActive->setAutoFilter('A3:G3');
+                $sheetActive->getStyle('A3:G3')->getFont()->setBold(true)->setSize(12);
+
+                // título del excel
+                $sheetActive->setCellValue('A1', 'Registro Proceso matrícula periodo '. $periodo);
+
+                // ancho de las celdas
+                $sheetActive->getColumnDimension('A')->setWidth(15);
+                $sheetActive->getColumnDimension('B')->setWidth(20);
+                $sheetActive->getColumnDimension('C')->setWidth(10);
+                $sheetActive->getColumnDimension('D')->setWidth(40);
+                $sheetActive->getColumnDimension('E')->setWidth(20);
+                $sheetActive->getColumnDimension('F')->setWidth(20);
+                $sheetActive->getColumnDimension('G')->setWidth(20);
+
+                // alineación del contenido de las celdas
+                $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('E:G')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
+
+                // titulo de la tabla
+                $sheetActive->setCellValue('A3', 'MATRICULA');
+                $sheetActive->setCellValue('B3', 'RUT');
+                $sheetActive->setCellValue('C3', 'GRADO');
+                $sheetActive->setCellValue('D3', 'NOMBRES ESTUDIANTE');
+                $sheetActive->setCellValue('E3', 'TIPO');
+                $sheetActive->setCellValue('F3', 'ESTADO');
+                $sheetActive->setCellValue('G3', 'FECHA MATRICULA');
+
+                // datos de la tabla
+                $fila = 4;
+                foreach($reportProcessMatricula as $processMatricula) {
+                    $sheetActive->setCellValue('A'.$fila, $processMatricula->numero_matricula);
+                    $sheetActive->setCellValue('B'.$fila, $processMatricula->rut_estudiante);
+                    $sheetActive->setCellValue('C'.$fila, $processMatricula->grado_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $processMatricula->nombres_estudiante);
+                    $sheetActive->setCellValue('E'.$fila, $processMatricula->estudiante_nuevo === true ? "NUEVO" : "CONTINUA");
+                    $sheetActive->setCellValue('F'.$fila, $processMatricula->estado_matricula === true ? "MATRICULADO" : "NO MATRICULADO");
+                    $sheetActive->setCellValue('G'.$fila, $processMatricula->fecha_matricula);
+                    
+                    $fila++;
+                }
+
+                // cabeceras de la descarga
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
+                header('Cache-Control: max-age=0');
+
+                $writer = IOFactory::createWriter($file, 'Xlsx');
+                $writer->save('php://output');
+
+            } catch (Exception $error) {
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+
+            } finally {
+                $this->closeConnection();
+            }
+
 
         }
 
