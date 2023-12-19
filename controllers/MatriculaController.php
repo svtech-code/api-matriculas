@@ -20,6 +20,6 @@
     
     
     // Flight::route('DELETE /matricula/deleteMatricula/@id', [$matricula, "deleteMatricula"]);
-    // Flight::route('GET /matricula/getNumber/@grade', [$matricula, "getNumberMatricula"]);
+    // Flight::route('GET /matricula/getNumber/@grade/@periodo', [$matricula, "getNumberMatricula"]);
     
 ?>

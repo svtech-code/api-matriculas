@@ -32,6 +32,19 @@
         public function closeConnection() {
             $this->connection = null;
         }
+
+        // probando transacciones
+        public function beginTransaction() {
+            $this->connection->beginTransaction();
+        }
+
+        public function commit() {
+            $this->connection->commit();
+        }
+
+        public function rollBack() {
+            $this->connection->rollBack();
+        }
     }
 
 
