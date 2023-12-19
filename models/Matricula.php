@@ -68,10 +68,10 @@
                 "SELECT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
                 e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD / MM / YYYY'), 'Sin registro') AS fecha_nacimiento,
-                to_char(m.fecha_alta_matricula, 'DD / MM / YYYY') AS fecha_alta,
-                to_char(m.fecha_baja_matricula, 'DD / MM / YYYY') AS fecha_baja,
-                to_char(m.fecha_matricula, 'DD / MM / YYYY') AS fecha_matricula,
+                COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD/MM/YYYY'), 'Sin registro') AS fecha_nacimiento,
+                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta,
+                to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja,
+                to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
                 CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, 
                 m.grado, (c.grado_curso::text || c.letra_curso) AS curso,
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
@@ -387,7 +387,8 @@
                 l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
                 e.nombres_estudiante ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END
                 || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
-                l.estudiante_nuevo, COUNT(m.id_registro_matricula) > 0 AS estado_matricula, m.fecha_matricula
+                l.estudiante_nuevo, COUNT(m.id_registro_matricula) > 0 AS estado_matricula, 
+                to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula
                 FROM libromatricula.lista_sae as l
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.rut_estudiante = l.rut_estudiante
                 LEFT JOIN libromatricula.registro_matricula AS m ON m.id_estudiante = e.id_estudiante AND m.anio_lectivo_matricula = ?
