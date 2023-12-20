@@ -441,8 +441,71 @@
 
 
 
+        // ver si la verificacion es la que afecta la duplicidad de datos
 
-        // ------- funcionalidades por trabajar
+        // ------- funcionalidades por probar en base de datos de prueba
+        public function pruebaSetMatricula() {
+            $this->validateToken();
+            $matricula = Flight::request()->data;
+
+            // Primero, se verifica si el estudiante ya esta matriculado !!
+            $this->verifStudentMatricula(
+                $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
+                $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
+            );
+
+            $statementMatricula = $this->preConsult(
+                "INSERT INTO libromatricula.registro_matricula
+                (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
+                grado, fecha_matricula, anio_lectivo_matricula)
+                VALUES (
+                    (SELECT COALESCE(MAX(numero_matricula), 0) + 1 AS numero_matricula
+                    FROM libromatricula.registro_matricula
+                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?), ?, ?, ?, ?, ?, ?)
+                RETURNING numero_matricula;"
+            );
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            try {
+
+                $statementMatricula->execute([
+                    intval($matricula->anio_lectivo),
+                    intval($matricula->id_estudiante), 
+                    $matricula->id_titular ? intval($matricula->id_titular): null,
+                    $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
+                    intval($matricula->grado), 
+                    $matricula->fecha_matricula,
+                    intval($matricula->anio_lectivo),
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                $numeroMatricula = $statementMatricula->fetch(PDO::FETCH_OBJ);
+                Flight::json($numeroMatricula->numero_matricula);
+
+
+            } catch (Exception $error) {
+
+                // reverit transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                Flight::halt(400, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+
+            } finally {
+                $this->closeConnection();
+            }
+
+
+
+        }
 
 
         

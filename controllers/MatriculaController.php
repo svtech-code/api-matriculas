@@ -21,5 +21,10 @@
     
     // Flight::route('DELETE /matricula/deleteMatricula/@id', [$matricula, "deleteMatricula"]);
     // Flight::route('GET /matricula/getNumber/@grade/@periodo', [$matricula, "getNumberMatricula"]);
+
+    // PROBAR NUEVA FORMA DE INSERTAR REGISTRO Y AGREGAR EN EL INSER SELECT DE NUMERO DE MATRICULA
+    // Flight::route('POST /matricula/pruebaSetMatricula', [$matricula, "pruebaSetMatricula"]);
+
+
     
 ?>
