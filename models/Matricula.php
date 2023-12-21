@@ -33,31 +33,31 @@
         }
 
         // método para obtener la cantidad de matriculas y retiros del periodo lectivo
-        public function getCountAltasBajas($periodo) {
-            $this->validateToken();
+        // public function getCountAltasBajas($periodo) {
+        //     $this->validateToken();
 
-            $statmentCountAltasBajas = $this->preConsult(
-                "SELECT COUNT(CASE WHEN m.id_estado_matricula = 1 THEN 1 ELSE NULL END) AS altas,
-                COUNT(CASE WHEN m.id_estado_matricula = 4 THEN 1 ELSE NULL END) AS bajas
-                FROM libromatricula.registro_matricula AS m
-                WHERE m.anio_lectivo_matricula = ?;"
-            );
+        //     $statmentCountAltasBajas = $this->preConsult(
+        //         "SELECT COUNT(CASE WHEN m.id_estado_matricula = 1 THEN 1 ELSE NULL END) AS altas,
+        //         COUNT(CASE WHEN m.id_estado_matricula = 4 THEN 1 ELSE NULL END) AS bajas
+        //         FROM libromatricula.registro_matricula AS m
+        //         WHERE m.anio_lectivo_matricula = ?;"
+        //     );
 
-            try {
-                $statmentCountAltasBajas->execute([intval($periodo)]);
-                $countAltasBajas = $statmentCountAltasBajas->fetch(PDO::FETCH_OBJ);
-                $this->array = [
-                    "altas" => $countAltasBajas->altas,
-                    "bajas" => $countAltasBajas->bajas
-                ];
-                Flight::json($this->array);
+        //     try {
+        //         $statmentCountAltasBajas->execute([intval($periodo)]);
+        //         $countAltasBajas = $statmentCountAltasBajas->fetch(PDO::FETCH_OBJ);
+        //         $this->array = [
+        //             "altas" => $countAltasBajas->altas,
+        //             "bajas" => $countAltasBajas->bajas
+        //         ];
+        //         Flight::json($this->array);
 
-            } catch(Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-            }
-        }
+        //     } catch(Exception $error) {
+        //         Flight::halt(400, json_encode([
+        //             "message" => "Error: ". $error->getMessage()
+        //         ]));
+        //     }
+        // }
 
         // método para obtener lista de matriculas
         public function getMatriculaAll($periodo) {
@@ -184,6 +184,7 @@
         }
 
         // método para obtener el número de matricula correlativo por nivel
+        // tratar de eliminar método !!!!
         protected function getNumberMatricula($grade, $periodo) {
 
             if ($grade >= 1 && $grade <= 4) {
@@ -289,17 +290,17 @@
                     "INSERT INTO libromatricula.registro_matricula
                     (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
                     grado, fecha_matricula, anio_lectivo_matricula)
-                    VALUES (?, ?, ?, ?, ?, ?, ?);"
-                );
-                
-                $n_matricula = $this->getNumberMatricula($matricula->grado, $matricula->anio_lectivo);
+                    VALUES (libromatricula.get_numero_matricula(?, ?), ?, ?, ?, ?, ?, ?)
+                    RETURNING numero_matricula;"
+                );                        
 
                 $statementMatricula->execute([
-                    intval($n_matricula), 
+                    intval($matricula->grado),
+                    intval($matricula->anio_lectivo),
                     intval($matricula->id_estudiante), 
                     $matricula->id_titular ? intval($matricula->id_titular): null,
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
-                    intval($matricula->grado), 
+                    intval($matricula->grado),
                     $matricula->fecha_matricula,
                     intval($matricula->anio_lectivo),
                 ]);
@@ -307,8 +308,8 @@
                 // confirmar transacción
                 $this->commit();
                 // ========================>
-
-                $this->array = ["numero_matricual" => $n_matricula];
+                
+                $this->array = ["numero_matricula" => $statementMatricula->fetch(PDO::FETCH_COLUMN)];
                 Flight::json($this->array);
 
             } catch (Exception $error) {
@@ -329,6 +330,8 @@
         
         // =======> desencadenar log de cambio de apoderados
         // método para actualizar una matrícula
+        // al momento aún se sigue utilizando metodo antiguo para asignar nuevo numero de matricula !!!!
+        // refactorizar codigo !!!!
         public function updateMatricula() {
             $this->validateToken();
             $matricula = Flight::request()->data;
@@ -444,68 +447,124 @@
         // ver si la verificacion es la que afecta la duplicidad de datos
 
         // ------- funcionalidades por probar en base de datos de prueba
-        public function pruebaSetMatricula() {
-            $this->validateToken();
-            $matricula = Flight::request()->data;
+        // public function pruebaSetMatricula() {
+        //     $this->validateToken();
+        //     $matricula = Flight::request()->data;
 
-            // Primero, se verifica si el estudiante ya esta matriculado !!
-            $this->verifStudentMatricula(
-                $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
-                $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
-            );
+        //     // Primero, se verifica si el estudiante ya esta matriculado !!
+        //     $this->verifStudentMatricula(
+        //         $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
+        //         $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
+        //     );
 
-            $statementMatricula = $this->preConsult(
-                "INSERT INTO libromatricula.registro_matricula
-                (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
-                grado, fecha_matricula, anio_lectivo_matricula)
-                VALUES (
-                    (SELECT COALESCE(MAX(numero_matricula), 0) + 1 AS numero_matricula
-                    FROM libromatricula.registro_matricula
-                    WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?), ?, ?, ?, ?, ?, ?)
-                RETURNING numero_matricula;"
-            );
+        //     $statementMatricula = $this->preConsult(
+        //         "INSERT INTO libromatricula.registro_matricula
+        //         (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
+        //         grado, fecha_matricula, anio_lectivo_matricula)
+        //         VALUES (
+        //             (SELECT COALESCE(MAX(numero_matricula), 0) + 1 AS numero_matricula
+        //             FROM libromatricula.registro_matricula
+        //             WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?), ?, ?, ?, ?, ?, ?)
+        //         RETURNING numero_matricula;"
+        //     );
 
-            // iniciar transaccion
-            $this->beginTransaction();
-            // ========================>
+        //     // iniciar transaccion
+        //     $this->beginTransaction();
+        //     // ========================>
 
-            try {
+        //     try {
 
-                $statementMatricula->execute([
-                    intval($matricula->anio_lectivo),
-                    intval($matricula->id_estudiante), 
-                    $matricula->id_titular ? intval($matricula->id_titular): null,
-                    $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
-                    intval($matricula->grado), 
-                    $matricula->fecha_matricula,
-                    intval($matricula->anio_lectivo),
-                ]);
+        //         $statementMatricula->execute([
+        //             intval($matricula->anio_lectivo),
+        //             intval($matricula->id_estudiante), 
+        //             $matricula->id_titular ? intval($matricula->id_titular): null,
+        //             $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
+        //             intval($matricula->grado), 
+        //             $matricula->fecha_matricula,
+        //             intval($matricula->anio_lectivo),
+        //         ]);
 
-                // confirmar transacción
-                $this->commit();
-                // ========================>
+        //         // confirmar transacción
+        //         $this->commit();
+        //         // ========================>
 
-                $numeroMatricula = $statementMatricula->fetch(PDO::FETCH_OBJ);
-                Flight::json($numeroMatricula->numero_matricula);
-
-
-            } catch (Exception $error) {
-
-                // reverit transaccion en caso de error
-                $this->rollBack();
-                // ========================>
-
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-
-            } finally {
-                $this->closeConnection();
-            }
+        //         $numeroMatricula = $statementMatricula->fetch(PDO::FETCH_OBJ);
+        //         Flight::json($numeroMatricula->numero_matricula);
 
 
+        //     } catch (Exception $error) {
 
-        }
+        //         // reverit transaccion en caso de error
+        //         $this->rollBack();
+        //         // ========================>
+
+        //         Flight::halt(400, json_encode([
+        //             "message" => "Error: ". $error->getMessage()
+        //         ]));
+
+        //     } finally {
+        //         $this->closeConnection();
+        //     }
+
+
+
+        // }
+
+        // respaldo
+        // public function setMatricula() {
+        //     $this->validateToken();
+        //     $matricula = Flight::request()->data;
+
+        //     // iniciar transaccion
+        //     $this->beginTransaction();
+        //     // ========================>
+            
+        //     try {
+        //         // $this->verifStudentMatricula(
+        //         //     $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
+        //         //     $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
+        //         // );
+                
+        //         $statementMatricula = $this->preConsult(
+        //             "INSERT INTO libromatricula.registro_matricula
+        //             (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
+        //             grado, fecha_matricula, anio_lectivo_matricula)
+        //             VALUES (?, ?, ?, ?, ?, ?, ?);"
+        //         );
+                
+        //         $n_matricula = $this->getNumberMatricula($matricula->grado, $matricula->anio_lectivo);
+
+        //         $statementMatricula->execute([
+        //             intval($n_matricula), 
+        //             intval($matricula->id_estudiante), 
+        //             $matricula->id_titular ? intval($matricula->id_titular): null,
+        //             $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
+        //             intval($matricula->grado), 
+        //             $matricula->fecha_matricula,
+        //             intval($matricula->anio_lectivo),
+        //         ]);
+
+        //         // confirmar transacción
+        //         $this->commit();
+        //         // ========================>
+
+        //         $this->array = ["numero_matricual" => $n_matricula];
+        //         Flight::json($this->array);
+
+        //     } catch (Exception $error) {
+
+        //         // reverit transaccion en caso de error
+        //         $this->rollBack();
+        //         // ========================>
+
+        //         Flight::halt(400, json_encode([
+        //             "message" => "Error: ". $error->getMessage()
+        //         ]));
+
+        //     } finally {
+        //         $this->closeConnection();
+        //     }
+        // }
 
 
         
@@ -513,83 +572,41 @@
 
 
 
+    // secuencia creada para la asignación automatica del número de matricula
+    // ===================================================================================================>
 
+    // CREATE OR REPLACE FUNCTION libromatricula.getNumeroMatricula(grado_param INT, periodo_param INT)
+    // RETURNS INT AS $$
+    // DECLARE
+    //     sequence_name VARCHAR;
+    //     numero_matricula INT;
+    // BEGIN
+    //     -- Determinar el nombre de la secuencia según el grado y el periodo
+    //     IF grado_param BETWEEN 1 AND 4 THEN
+    //         sequence_name := 'libromatricula.secuencia_grados_1_4_' || periodo_param;
+    //     ELSIF grado_param BETWEEN 7 AND 8 THEN
+    //         sequence_name := 'libromatricula.secuencia_grados_7_8_' || periodo_param;
+    //     ELSE
+    //         RAISE EXCEPTION 'Grado no válido';
+    //     END IF;
 
+    //     -- Intentar crear la secuencia
+    //     BEGIN
+    //         EXECUTE 'CREATE SEQUENCE ' || sequence_name || ' START WITH 1 INCREMENT BY 1 NO MAXVALUE NO CYCLE;';
+    //     EXCEPTION
+    //         WHEN duplicate_table THEN
+    //             -- Ignorar la excepción si la secuencia ya existe
+    //             NULL;
+    //     END;
 
+    //     -- Obtener el próximo valor de la secuencia
+    //     EXECUTE 'SELECT nextval($1)' INTO numero_matricula USING sequence_name;
 
-    // // respaldo
-    // // método para obtener el número de matricula correlativo por nivel
-    // public function getNumberMatricula($grade, $periodo) {
+    //     RETURN numero_matricula;
+    // END;
+    // $$ LANGUAGE plpgsql;
 
-    //     if ($grade >= 1 && $grade <= 4) {
-    //         // $statementNumberMatricula = $this->preConsult(
-    //         //     "SELECT numero_matricula
-    //         //     FROM libromatricula.registro_matricula
-    //         //     WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?
-    //         //     ORDER BY numero_matricula ASC;"
-    //         // );
-    //         $statementNumberMatricula = $this->preConsult(
-    //             "SELECT MAX(numero_matricula) + 1 AS numero_matricula
-    //             FROM libromatricula.registro_matricula
-    //             WHERE grado BETWEEN 1 AND 4 AND anio_lectivo_matricula = ?;"
-    //         );
-    //     } elseif ($grade >= 7 && $grade <= 8) {
-    //         $statementNumberMatricula = $this->preConsult(
-    //             "SELECT MAX(numero_matricula) + 1 AS numero_matricula
-    //             FROM libromatricula.registro_matricula
-    //             WHERE grado BETWEEN 7 AND 8 AND anio_lectivo_matricula = ?
-    //             ORDER BY numero_matricula ASC;"
-    //         );
-    //     }
-
-    //     try {
-    //         // $statementNumberMatricula->execute([$periodo]);
-    //         // $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
-
-    //         // // Si no hay datos en la tabla, comenzar desde 1
-    //         // if (empty($rango_matricula)) {
-    //         //     return 1;
-    //         // }
-
-    //         // // obtener los valores del rango inicial y final
-    //         // $rango_inicial = 1;
-    //         // $rango_final = max($rango_matricula);
-    //         // $numero_matricula = $rango_inicial;
-
-    //         // // recorrer el rango de numero de matriculas obtenido en la consulta
-    //         // foreach ($rango_matricula as $rango) {
-    //         //     // verificar si el número esta dentro del rango
-    //         //     if ($rango >= $rango_inicial && $rango <= $rango_final) {
-    //         //         // si el número es el correlativo esperado, incrementar el correlativo
-    //         //         if ($rango == $numero_matricula) {
-    //         //             $numero_matricula++;
-    //         //         } else {
-    //         //             // si falta un número en el rango, ese será el correlativo
-    //         //             break;
-    //         //         }
-    //         //     }
-    //         // }
-
-    //         // // si todos los números estan presentes, el correlativo será el siguiente después del máximo en el rango
-    //         // if ($numero_matricula > $rango_final) {
-    //         //     $numero_matricula = $rango_final + 1;
-    //         // }
-
-    //         // return $numero_matricula;
-
-
-    //         $statementNumberMatricula->execute([$periodo]);
-    //         $n_matricula = $statementNumberMatricula->fetch(PDO::FETCH_OBJ);
-
-    //         Flight::json($n_matricula->numero_matricula);
-
-    //     } catch (Exception $error) {
-    //         Flight::halt(400, json_encode([
-    //             "message" => "Error: ". $error->getMessage()
-    //         ]));
-    //     } 
-    //     // no cerrar la conexion aún, ya que la utilizare en otro metodo
-    // }
+    // ===================================================================================================>
 
 
 

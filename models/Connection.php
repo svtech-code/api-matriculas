@@ -25,24 +25,23 @@
             }
         }
 
-        public function preConsult($query) {
+        protected function preConsult($query) {
             return $this->connection->prepare($query);
         }
 
-        public function closeConnection() {
+        protected function closeConnection() {
             $this->connection = null;
         }
 
-        // probando transacciones
-        public function beginTransaction() {
+        protected function beginTransaction() {
             $this->connection->beginTransaction();
         }
 
-        public function commit() {
+        protected function commit() {
             $this->connection->commit();
         }
 
-        public function rollBack() {
+        protected function rollBack() {
             $this->connection->rollBack();
         }
     }
