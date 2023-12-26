@@ -30,6 +30,7 @@
 
         public function __construct() {
             parent::__construct();
+            // se genera la carpeta temporal con los permisos correspondientes dentro del servidor
             if (!file_exists($this->tempDir)) mkdir($this->tempDir, 0777, true);
             Settings::setTempDir($this->tempDir);
             $this->currentMonth = date('F');
@@ -41,7 +42,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1]);
+            $this->validatePrivilege([1, 2]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
@@ -56,8 +57,10 @@
             );
 
             try {
-                // ejecucion de la consulta SQL
+                // se ejecuta la consulta
                 $statementReport->execute([$rut, intval($periodo)]);
+
+                // se obtiene un objeto con los datos de la consutla
                 $report = $statementReport->fetch(PDO::FETCH_OBJ);
 
                 // ruta de las plantillas de word
@@ -67,7 +70,7 @@
                 // crear un objeto TemplateProcessor
                 $file = new TemplateProcessor($templateCertificadoMatricula);
     
-                // asignación de los datos dinamicos
+                // asignación de los datos dinámicos
                 $file->setValues(
                     [
                         'nombre' => $report->nombres_estudiante,
@@ -92,18 +95,24 @@
                 unlink($templateCertificadoMatriculaTemp);
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
             
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
         }
 
         // método para obtener certificado de alumno regular
         public function getCertificadoAlumnoRegular($rut, $periodo) {
+            // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
@@ -119,14 +128,15 @@
             );
 
             try {
-                // ejecucion de la consulta SQL
+                // se ejecuta la consulta
                 $statementReport->execute([$rut, intval($periodo)]);
+
+                // se obtiene un objeto con los datos de la consutla
                 $report = $statementReport->fetch(PDO::FETCH_OBJ);
                 
+                // se verifica que los datos se han generado con exito
                 if (!$report) {
-                    Flight::halt(400, json_encode([
-                        "message" => "Matricula sin curso asignado",
-                    ]));
+                    throw new Exception("Matrícula sin curso asignado", 409);
                 }
 
                 // ruta de las plantillas de word
@@ -163,11 +173,16 @@
                 unlink($templateCertificadoAlumnoRegularTemp);
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                // obtención del codigo de error
+                $statusCode = $error->getCode() ?: 404;
+
+                // expeción personalizada para errores
+                Flight::halt($statusCode, json_encode([
+                    "message" => "Error: ". $error->getMessage(),
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
 
@@ -175,6 +190,7 @@
 
         // método para obtener reporte de matrícula
         public function getReportMatricula($dateFrom, $dateTo, $periodo) {
+            // se valida el token del usuario
             $this->validateToken();
 
             // sentencia SQL
@@ -202,8 +218,10 @@
             );
 
             try {
-                // ejecucion de la consulta SQL
+                // se ejecuta la consulta
                 $statementReportMatricula->execute([intval($periodo), $dateFrom, $dateTo]);
+                
+                // se obtiene un objeto con los datos de la consutla
                 $reportMatricula = $statementReportMatricula->fetchAll(PDO::FETCH_OBJ);
 
                 $file = new Spreadsheet();
@@ -286,9 +304,9 @@
                 $sheetActive->setCellValue('V3', 'TELEFONO_SUPLENTE');
                 $sheetActive->setCellValue('W3', 'DIRECCOIN_SUPLENTE');
 
-                // agregar el estado de la matricula !!
 
                 $fila = 4;
+                // se recorre el objeto para obtener un array con todos los datos de la consulta
                 foreach ($reportMatricula as $report) {
                     $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
                     $sheetActive->setCellValue('B'.$fila, $report->fecha_matricula);
@@ -324,15 +342,18 @@
                 header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
                 header('Cache-Control: max-age=0');
 
+                // se genera el archivo excel
                 $writer = IOFactory::createWriter($file, 'Xlsx');
                 $writer->save('php://output');
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
 
@@ -340,6 +361,7 @@
 
         // método para obtener reporte del proceso de matrícula
         public function getReportProcessMatricula($periodo) {
+            // se valida el token del usuario
             $this->validateToken();
 
             // sentencia SQL
@@ -358,8 +380,10 @@
             );
 
             try {
-                // ejecución de la sentencia SQL
+                // se ejecuta la consulta
                 $statementReportProcessMatricula->execute([intval($periodo), intval($periodo)]);
+                
+                // se obtiene un objeto con los datos de la consutla
                 $reportProcessMatricula = $statementReportProcessMatricula->fetchAll(PDO::FETCH_OBJ);
 
                 // creación del objeto excel
@@ -423,18 +447,20 @@
                 header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
                 header('Cache-Control: max-age=0');
 
+                // se crea el archivo excel
                 $writer = IOFactory::createWriter($file, 'Xlsx');
                 $writer->save('php://output');
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
-
 
         }
 

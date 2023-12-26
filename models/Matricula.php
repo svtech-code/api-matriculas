@@ -188,7 +188,6 @@
         // método para obtener el número de matricula correlativo por nivel
         // tratar de eliminar método !!!!
         protected function getNumberMatricula($grade, $periodo) {
-
             if ($grade >= 1 && $grade <= 4) {
                 // sentencia SQL
                 $statementNumberMatricula = $this->preConsult(
@@ -208,7 +207,10 @@
             }
 
             try {
+                // se ejecuta la consulta SQL
                 $statementNumberMatricula->execute([$periodo]);
+
+                // se obtiene un objeto con los datos de la consulta
                 $rango_matricula = $statementNumberMatricula->fetchAll(PDO::FETCH_COLUMN);
 
                 // Si no hay datos en la tabla, comenzar desde 1
@@ -240,11 +242,13 @@
                     $numero_matricula = $rango_final + 1;
                 }
 
+                // se retorna el número de matricula
                 return $numero_matricula;
 
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
             } 
@@ -261,15 +265,22 @@
             );
 
             try {
+                // se ejecuta la consulta SQL
                 $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
+                
+                // se obtiene un objeto con los datos de la consulta
                 $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
+
+                // condición para verificar si el estudiante ya se encuentra matriculado
                 if ($verify) {
-                    throw new Exception("La contraseña ingresada es incorrecta", 409);
+                    throw new Exception("El estudiante ya se encuentra matriculado", 409);
                 }
 
             } catch (Exception $error) {
+                // obtención del codigo de error
                 $statusCode = $error->getCode() ?: 404;
 
+                // expeción personalizada para errores
                 Flight::halt($statusCode, json_encode([
                     "message" => "Error: ". $error->getMessage(),
                 ]));
@@ -304,6 +315,7 @@
                     RETURNING numero_matricula;"
                 );                        
 
+                // se ejecuta la consulta
                 $statementMatricula->execute([
                     intval($matricula->grado),
                     intval($matricula->anio_lectivo),
@@ -323,16 +335,17 @@
                 Flight::json($this->array);
 
             } catch (Exception $error) {
-
                 // reverit transaccion en caso de error
                 $this->rollBack();
                 // ========================>
 
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
         }
@@ -345,15 +358,20 @@
         public function updateMatricula() {
             // se valida el token del usuario
             $this->validateToken();
-            $matricula = Flight::request()->data;
-            $newLevel = "";
 
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
+            // obtención de los datos enviados desde el cliente
+            $matricula = Flight::request()->data;
+            
             // obtener nivel educativo a actualizar
+            $newLevel = "";
             if ($matricula->grado >= 1 && $matricula->grado <= 4) $newLevel = "Media";
             if ($matricula->grado >= 7 && $matricula->grado <= 8) $newLevel = "Basica";
 
-            // comprobar cambio de nivel
             // sentencia SQL
+            // comprobar cambio de nivel
             $statementCheckGrade = $this->preConsult(
                 "SELECT CASE
                 WHEN grado IN (7,8) THEN 'Basica'
@@ -363,8 +381,8 @@
                 WHERE id_registro_matricula = ?;"
             );
             
-            // ver como manejar el numero de matricula
             // sentencia SQL
+            // ver como manejar el numero de matricula
             $statementUpdateMatricula = $this->preConsult(
                 "UPDATE libromatricula.registro_matricula
                 SET numero_matricula = ?, id_estudiante = ?, id_apoderado_titular = ?, 
@@ -374,20 +392,26 @@
             );
 
             try {
-                // se obtiene el nivel de la matricula
+                // se ejecuta la consulta para obtener el nivel de la matricula
                 $statementCheckGrade->execute([$matricula->id_matricula]);
                 $oldLevel = $statementCheckGrade->fetch(PDO::FETCH_OBJ);
+
+
+
+
+                // REVISAR AQUI !! ==============================>
 
                 // se compara los niveles y se asigna el numero de matricula
                 $numero_matricula = ($newLevel === $oldLevel->nivel_educativo) 
                     ? $matricula->n_matricula
                     : $this->getNumberMatricula($matricula->grado, $matricula->anio_lectivo);
 
-                // actulizacion de la matricula
+
+                // se ejecuta la consulta para actualizar la matricula
                 $statementUpdateMatricula->execute([
                     $numero_matricula,
                     intval($matricula->id_estudiante),
-                    intval($matricula->id_titular),
+                    $matricula->id_titular ? intval($matricula->id_titular) : null,
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null,
                     intval($matricula->grado),
                     $matricula->fecha_matricula,
@@ -397,12 +421,16 @@
                 // se devuelve el numero de matricula
                 Flight::json($numero_matricula);
 
+                // REVISAR AQUI !! ==============================>
+
             } catch(Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
         }
@@ -430,8 +458,13 @@
             );
 
             try {
+                // se ejecuta la consulta
                 $statementStatusProcessMatricula->execute([intval($periodo), intval($periodo)]);
+                
+                // se obtiene un objeto con los datos de la consutla
                 $statusProcessMatricula = $statementStatusProcessMatricula->fetchAll(PDO::FETCH_OBJ);
+                
+                // se recorre el objeto para obtener un array con todos los datos de la consulta
                 foreach($statusProcessMatricula as $statusProcess) {
                     $this->array[] = [
                         "rut_estudiante" => $statusProcess->rut_estudiante,
@@ -443,17 +476,19 @@
                     ];
                 }
 
+                // se devuelve un array con todos los datos de matricula
                 Flight::json($this->array);
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
-
         }
 
 
