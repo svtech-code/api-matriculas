@@ -37,7 +37,11 @@
 
         // método para obtener certificado de matricula
         public function getCertificadoMatricula($rut, $periodo) {
+            // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1]);
 
             // consulta SQL
             $statementReport = $this->preConsult(

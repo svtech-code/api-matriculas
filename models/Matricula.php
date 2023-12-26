@@ -13,6 +13,7 @@
 
         // Método para obtener el estado del periodo de matricula
         public function getPeriodoMatricula() {
+            // sentencia SQL
             $statementPeriodoMatricula = $this->preConsult(
                 "SELECT estado 
                 FROM libromatricula.periodo_matricula
@@ -20,13 +21,21 @@
             );
 
             try {
+                // se ejecuta la consulta SQL
                 $statementPeriodoMatricula->execute();
+
+                // se obtiene un objeto con los datos de la consulta
                 $response = $statementPeriodoMatricula->fetch(PDO::FETCH_OBJ);
+
+                // se genera una array con los datos de la consutla
                 $this->array = ["state" => $response->estado];
+
+                // se devuelve un array con los datos de la consutla
                 Flight::json($this->array);
 
             } catch(Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
             }
@@ -34,9 +43,10 @@
 
         // método para obtener lista de matriculas
         public function getMatriculaAll($periodo) {
+            // se valida el token del usuario
             $this->validateToken();
 
-            // Ver como manejar la condicion del año lectivo
+            // sentencia SQL
             $statmentMatricula = $this->preConsult(
                 "SELECT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
                 e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
@@ -64,8 +74,13 @@
             );
 
             try {
+                // se ejecuta la consulta
                 $statmentMatricula->execute([intval($periodo)]);
+
+                // se obtiene un objeto con los datos de la consutla
                 $matriculas = $statmentMatricula->fetchAll(PDO::FETCH_OBJ);
+
+                // se recorre el objeto para obtener un array con todos los datos de la consulta
                 foreach($matriculas as $matricula) {
                     $this->array[] = [
                         "id" => $matricula->id_registro_matricula,
@@ -90,22 +105,28 @@
                         "telefono_suplente" => $matricula->telefono_suplente,
                     ];
                 }
+
+                // se devuelve un array con todos los datos de matricula
                 Flight::json($this->array);
                 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
         }
 
         // método para obtener los datos de una matricula
         public function getMatricula($id) {
+            // se valida el token del usuario
             $this->validateToken();
 
+            // sentencia SQL
             $statementMatricula = $this->preConsult(
                 "SELECT m.numero_matricula, m.fecha_matricula, m.grado,
                 m.id_estudiante, e.rut_estudiante, e.dv_rut_estudiante,
@@ -124,8 +145,13 @@
             );
 
             try {
+                // se ejecuta la consulta
                 $statementMatricula->execute([intval($id)]);
+                
+                // se obtiene un objeto con los datos de la consutla
                 $matricula = $statementMatricula->fetch(PDO::FETCH_OBJ);
+                
+                // se obtiene un array con todos los datos de la consulta
                 $this->array = [
                     "numero_matricula" => $matricula->numero_matricula,
                     "fecha_matricula" => $matricula->fecha_matricula,
@@ -144,14 +170,17 @@
                     "nombres_suplente" => $matricula->nombres_suplente,
                 ];
 
+                // se devuelve un array con todos los datos de matricula
                 Flight::json($this->array);
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
                     "message" => "Error: ". $error->getMessage()
                 ]));
 
             } finally {
+                // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
         }
@@ -161,6 +190,7 @@
         protected function getNumberMatricula($grade, $periodo) {
 
             if ($grade >= 1 && $grade <= 4) {
+                // sentencia SQL
                 $statementNumberMatricula = $this->preConsult(
                     "SELECT numero_matricula
                     FROM libromatricula.registro_matricula
@@ -168,6 +198,7 @@
                     ORDER BY numero_matricula ASC;"
                 );
             } elseif ($grade >= 7 && $grade <= 8) {
+                // sentencia SQL
                 $statementNumberMatricula = $this->preConsult(
                     "SELECT numero_matricula
                     FROM libromatricula.registro_matricula
@@ -222,6 +253,7 @@
 
         // método para comprobar si un estudiante ya se encuentra matriculado
         protected function verifStudentMatricula($id_estudiante, $periodo) {
+            // sentencia SQL
             $statementVerifyStudent = $this->preConsult(
                 "SELECT id_registro_matricula
                 FROM libromatricula.registro_matricula
@@ -232,21 +264,24 @@
                 $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
                 $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
                 if ($verify) {
-                    Flight::halt(403, json_encode([
-                        "message" => "Estudiante ya matriculado !!"
-                    ]));
+                    throw new Exception("La contraseña ingresada es incorrecta", 409);
                 }
 
             } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                $statusCode = $error->getCode() ?: 404;
+
+                Flight::halt($statusCode, json_encode([
+                    "message" => "Error: ". $error->getMessage(),
                 ]));
             }
         }
 
         // método para registrar una matrícula
         public function setMatricula() {
+            // se valida el token del usuario
             $this->validateToken();
+
+            // obtención de la data enviada por el cliente
             $matricula = Flight::request()->data;
 
             // iniciar transaccion
@@ -254,11 +289,13 @@
             // ========================>
             
             try {
+                // verificar si el estudiante ya se encuentra ingresado
                 $this->verifStudentMatricula(
                     $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
                     $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
                 );
                 
+                // sentencia SQL
                 $statementMatricula = $this->preConsult(
                     "INSERT INTO libromatricula.registro_matricula
                     (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
@@ -306,6 +343,7 @@
         // al momento aún se sigue utilizando metodo antiguo para asignar nuevo numero de matricula !!!!
         // refactorizar codigo !!!!
         public function updateMatricula() {
+            // se valida el token del usuario
             $this->validateToken();
             $matricula = Flight::request()->data;
             $newLevel = "";
@@ -315,6 +353,7 @@
             if ($matricula->grado >= 7 && $matricula->grado <= 8) $newLevel = "Basica";
 
             // comprobar cambio de nivel
+            // sentencia SQL
             $statementCheckGrade = $this->preConsult(
                 "SELECT CASE
                 WHEN grado IN (7,8) THEN 'Basica'
@@ -325,6 +364,7 @@
             );
             
             // ver como manejar el numero de matricula
+            // sentencia SQL
             $statementUpdateMatricula = $this->preConsult(
                 "UPDATE libromatricula.registro_matricula
                 SET numero_matricula = ?, id_estudiante = ?, id_apoderado_titular = ?, 
@@ -370,8 +410,10 @@
 
         // método para obtener estado del proceso de matrícula en curso
         public function StatusProcessMatricula($periodo) {
+            // se valida el token del usuario
             $this->validateToken();
 
+            // sentencia SQL
             $statementStatusProcessMatricula = $this->preConsult(
                 "SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
                 l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
