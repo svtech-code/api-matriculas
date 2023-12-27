@@ -115,6 +115,50 @@
 
         }
 
+        public function getListCourse($periodo) {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // sentencia SQL
+            $statementListCourse = $this->preConsult(
+                "SELECT DISTINCT letra_curso
+                FROM libromatricula.registro_curso
+                WHERE periodo_escolar = ?
+                GROUP BY letra_curso;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementListCourse->execute([intval($periodo)]);
+
+                // se obtiene un objeto con los datos de la consutla
+                // $grades = $statementGrade->fetchAll(PDO::FETCH_OBJ);
+                $listCourse = $statementListCourse->fetchAll(PDO::FETCH_COLUMN);
+
+                // se recorre el objeto para obtener un array con todos los datos de la consulta
+                // foreach($grades as $grade) {
+                //     $this->array[] = [
+                //         "curso" => $grade->letra_curso,
+                //     ];
+                // }
+                $this->array = ["listCourse" => $listCourse];
+
+                // se devuelve un array con todos los datos de matricula
+                Flight::json($this->array);
+
+            } catch (Exception $error) {
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $error->getMessage()
+                ]));
+
+            } finally {
+                 // cierre de la conexión con la base de datos
+                 $this->closeConnection();
+            }
+
+        }
+
         
             
         
