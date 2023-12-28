@@ -42,7 +42,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2]);
+            $this->validatePrivilege([1, 2, 4]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
@@ -112,7 +112,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2]);
+            $this->validatePrivilege([1, 2, 4]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
