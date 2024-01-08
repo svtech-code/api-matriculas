@@ -2,6 +2,7 @@
     namespace Models;
 
     use Models\Auth;
+    use Models\ErrorHandler;
     use Exception;
     use Flight;
     use PDO;
@@ -34,10 +35,17 @@
                 Flight::json($this->array);
 
             } catch(Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementPeriodoMatricula);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
             }
         }
 
@@ -110,9 +118,12 @@
                 Flight::json($this->array);
                 
             } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statmentMatricula);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
@@ -174,9 +185,12 @@
                 Flight::json($this->array);
 
             } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementMatricula);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
@@ -254,38 +268,39 @@
             } 
             // no cerrar la conexion aún, ya que la utilizare en otro metodo
         }
+        // =============================>>
 
         // método para comprobar si un estudiante ya se encuentra matriculado
-        protected function verifStudentMatricula($id_estudiante, $periodo) {
-            // sentencia SQL
-            $statementVerifyStudent = $this->preConsult(
-                "SELECT id_registro_matricula
-                FROM libromatricula.registro_matricula
-                WHERE id_estudiante = ? AND anio_lectivo_matricula = ?"
-            );
+        // protected function verifStudentMatricula($id_estudiante, $periodo) {
+        //     // sentencia SQL
+        //     $statementVerifyStudent = $this->preConsult(
+        //         "SELECT id_registro_matricula
+        //         FROM libromatricula.registro_matricula
+        //         WHERE id_estudiante = ? AND anio_lectivo_matricula = ?"
+        //     );
 
-            try {
-                // se ejecuta la consulta SQL
-                $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
+        //     try {
+        //         // se ejecuta la consulta SQL
+        //         $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
                 
-                // se obtiene un objeto con los datos de la consulta
-                $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
+        //         // se obtiene un objeto con los datos de la consulta
+        //         $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
 
-                // condición para verificar si el estudiante ya se encuentra matriculado
-                if ($verify) {
-                    throw new Exception("El estudiante ya se encuentra matriculado", 409);
-                }
+        //         // condición para verificar si el estudiante ya se encuentra matriculado
+        //         if ($verify) {
+        //             throw new Exception("El estudiante ya se encuentra matriculado", 409);
+        //         }
 
-            } catch (Exception $error) {
-                // obtención del codigo de error
-                $statusCode = $error->getCode() ?: 404;
+        //     } catch (Exception $error) {
+        //         // obtención del codigo de error
+        //         $statusCode = $error->getCode() ?: 404;
 
-                // expeción personalizada para errores
-                Flight::halt($statusCode, json_encode([
-                    "message" => "Error: ". $error->getMessage(),
-                ]));
-            }
-        }
+        //         // expeción personalizada para errores
+        //         Flight::halt($statusCode, json_encode([
+        //             "message" => "Error: ". $error->getMessage(),
+        //         ]));
+        //     }
+        // }
 
         // método para registrar una matrícula
         public function setMatricula() {
@@ -298,27 +313,19 @@
             // iniciar transaccion
             $this->beginTransaction();
             // ========================>
+
+            // sentencia SQL
+            $statementMatricula = $this->preConsult(
+                "INSERT INTO libromatricula.registro_matricula
+                (id_estudiante, id_apoderado_titular, id_apoderado_suplente,
+                grado, fecha_matricula, anio_lectivo_matricula)
+                VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING numero_matricula;"
+            ); 
             
             try {
-                // verificar si el estudiante ya se encuentra ingresado
-                $this->verifStudentMatricula(
-                    $matricula->id_estudiante ? intval($matricula->id_estudiante) : null,
-                    $matricula->anio_lectivo ? intval($matricula->anio_lectivo) : null
-                );
-                
-                // sentencia SQL
-                $statementMatricula = $this->preConsult(
-                    "INSERT INTO libromatricula.registro_matricula
-                    (numero_matricula, id_estudiante, id_apoderado_titular, id_apoderado_suplente,
-                    grado, fecha_matricula, anio_lectivo_matricula)
-                    VALUES (libromatricula.get_numero_matricula(?, ?), ?, ?, ?, ?, ?, ?)
-                    RETURNING numero_matricula;"
-                );                        
-
                 // se ejecuta la consulta
                 $statementMatricula->execute([
-                    intval($matricula->grado),
-                    intval($matricula->anio_lectivo),
                     intval($matricula->id_estudiante), 
                     $matricula->id_titular ? intval($matricula->id_titular): null,
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null, 
@@ -335,13 +342,16 @@
                 Flight::json($this->array);
 
             } catch (Exception $error) {
-                // reverit transaccion en caso de error
+                // revertir transaccion en caso de error
                 $this->rollBack();
                 // ========================>
 
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementMatricula);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
@@ -480,9 +490,12 @@
                 Flight::json($this->array);
 
             } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementStatusProcessMatricula);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {

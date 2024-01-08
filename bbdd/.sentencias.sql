@@ -1,7 +1,7 @@
 -- -> función para obtener el número de matrícula correlativo
 -- -> function to obtain the correlative registration number
 
--- --------------------------> SENTENCIA
+-- ---------------------------> FUNCION PARA GENERAR NUMERO DE MATRICULA CORRELATIVO
 
 -- CREATE OR REPLACE FUNCTION libromatricula.getNumeroMatricula(grado_param INT, periodo_param INT)
 -- RETURNS INT AS $$
@@ -70,3 +70,105 @@
 --     ON libromatricula.prueba
 --     FOR EACH ROW
 --     EXECUTE PROCEDURE libromatricula.f_numero_matricula();
+
+
+
+
+
+
+-- ---------------------------> FUNCION PARA COMPROBAR EXISTENCIA DE ID ESTUDIANTE DENTRO DEL MISMO PERIODO
+-- CREATE OR REPLACE FUNCTION libromatricula.estudiante_por_periodo()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+-- 	existe BOOLEAN;
+-- BEGIN
+-- 	SELECT EXISTS (
+-- 		SELECT 1 FROM libromatricula.registro_matricula
+-- 		WHERE id_estudiante = NEW.id_estudiante AND anio_lectivo_matricula = NEW.anio_lectivo_matricula
+-- 	) INTO existe;
+	
+-- 	IF existe THEN
+-- 		RAISE EXCEPTION 'El estudiante ya esta matriculado para el periodo escolar actual';
+-- 	END IF;
+	
+-- 	RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+
+-- ---------------------------> TRIGGER DE LA TABLA, PARA EJECUTAR LA FUNCTION
+-- CREATE TRIGGER before_insert_registro_matricula
+-- BEFORE INSERT ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.estudiante_por_periodo();
+-- ====================================================================>>
+
+
+-- ---------------------------> FUNCION PARA VERIFICAR ESTUDIANTE EXISTENTE POR PERIODO Y GENERACION DE NUMERO DE MATRICUAL
+-- CREATE OR REPLACE FUNCTION libromatricula.set_new_matricula()
+-- 	RETURNS TRIGGER AS $$
+	
+-- DECLARE
+-- 	existe BOOLEAN;
+-- 	max_number_matricula INTEGER;
+-- 	grado_param INTEGER;
+-- 	grado_min INTEGER;
+-- 	grado_max INTEGER;
+	
+-- BEGIN
+-- 	-- asignacion de las variables
+-- 	grado_param := new.grado;
+-- 	CASE 
+-- 		WHEN grado_param BETWEEN 1 AND 4 THEN
+-- 			grado_min := 1;
+-- 			grado_max := 4;
+-- 		WHEN grado_param BETWEEN 7 AND 8 THEN
+-- 			grado_min := 7;
+-- 			grado_max := 8;
+-- 		ELSE
+-- 			RAISE EXCEPTION 'Grado o periodo no válido';
+-- 	END CASE;
+-- 	-- =============================================================>
+
+-- 	-- verificación de estudiante registrado en periodo actual
+-- 	SELECT EXISTS (
+-- 		SELECT 1 FROM libromatricula.registro_matricula
+-- 		WHERE id_estudiante = NEW.id_estudiante AND anio_lectivo_matricula = NEW.anio_lectivo_matricula
+-- 	) INTO existe;
+	
+-- 	IF existe THEN
+-- 		RAISE EXCEPTION 'El estudiante ya esta matriculado para el periodo escolar actual';
+-- 	END IF;
+-- 	-- =============================================================>
+
+-- 	-- generación de numero de matricula según nivel
+-- 	SELECT COALESCE(MAX(numero_matricula), 0) INTO max_number_matricula
+-- 	FROM libromatricula.registro_matricula
+-- 	WHERE anio_lectivo_matricula = NEW.anio_lectivo_matricula
+-- 	AND grado BETWEEN grado_min AND grado_max;
+
+-- 	NEW.numero_matricula := max_number_matricula + 1;
+-- 	-- =============================================================>
+	
+-- 	RETURN NEW;
+
+-- END;
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- ---------------------------> TRIGGER LANZADOR DE LA FUNCION CREADA PARA EL INSERT DE UNA MATRICULA
+-- CREATE OR REPLACE TRIGGER before_insert_matricula
+-- 	BEFORE INSERT ON libromatricula.registro_matricula
+-- 	FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.set_new_matricula();
+-- ====================================================================>>
+
+
+
+
+
+
+
