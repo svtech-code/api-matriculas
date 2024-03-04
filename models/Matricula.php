@@ -270,42 +270,14 @@
         }
         // =============================>>
 
-        // método para comprobar si un estudiante ya se encuentra matriculado
-        // protected function verifStudentMatricula($id_estudiante, $periodo) {
-        //     // sentencia SQL
-        //     $statementVerifyStudent = $this->preConsult(
-        //         "SELECT id_registro_matricula
-        //         FROM libromatricula.registro_matricula
-        //         WHERE id_estudiante = ? AND anio_lectivo_matricula = ?"
-        //     );
-
-        //     try {
-        //         // se ejecuta la consulta SQL
-        //         $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
-                
-        //         // se obtiene un objeto con los datos de la consulta
-        //         $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
-
-        //         // condición para verificar si el estudiante ya se encuentra matriculado
-        //         if ($verify) {
-        //             throw new Exception("El estudiante ya se encuentra matriculado", 409);
-        //         }
-
-        //     } catch (Exception $error) {
-        //         // obtención del codigo de error
-        //         $statusCode = $error->getCode() ?: 404;
-
-        //         // expeción personalizada para errores
-        //         Flight::halt($statusCode, json_encode([
-        //             "message" => "Error: ". $error->getMessage(),
-        //         ]));
-        //     }
-        // }
 
         // método para registrar una matrícula
         public function setMatricula() {
             // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
 
             // obtención de la data enviada por el cliente
             $matricula = Flight::request()->data;
@@ -406,9 +378,6 @@
                 $statementCheckGrade->execute([$matricula->id_matricula]);
                 $oldLevel = $statementCheckGrade->fetch(PDO::FETCH_OBJ);
 
-
-
-
                 // REVISAR AQUI !! ==============================>
 
                 // se compara los niveles y se asigna el numero de matricula
@@ -447,6 +416,7 @@
 
 
         // método para obtener estado del proceso de matrícula en curso
+        // método empleado para el proceso de matricula, con la finalidad de ver estudiantes matriculados y faltantes
         public function StatusProcessMatricula($periodo) {
             // se valida el token del usuario
             $this->validateToken();
@@ -503,6 +473,40 @@
                 $this->closeConnection();
             }
         }
+
+
+        // ======= metodo eliminado por funcionalidad en base de datos !!
+        // método para comprobar si un estudiante ya se encuentra matriculado
+        // protected function verifStudentMatricula($id_estudiante, $periodo) {
+        //     // sentencia SQL
+        //     $statementVerifyStudent = $this->preConsult(
+        //         "SELECT id_registro_matricula
+        //         FROM libromatricula.registro_matricula
+        //         WHERE id_estudiante = ? AND anio_lectivo_matricula = ?"
+        //     );
+
+        //     try {
+        //         // se ejecuta la consulta SQL
+        //         $statementVerifyStudent->execute([intval($id_estudiante), intval($periodo)]);
+                
+        //         // se obtiene un objeto con los datos de la consulta
+        //         $verify = $statementVerifyStudent->fetch(PDO::FETCH_OBJ);
+
+        //         // condición para verificar si el estudiante ya se encuentra matriculado
+        //         if ($verify) {
+        //             throw new Exception("El estudiante ya se encuentra matriculado", 409);
+        //         }
+
+        //     } catch (Exception $error) {
+        //         // obtención del codigo de error
+        //         $statusCode = $error->getCode() ?: 404;
+
+        //         // expeción personalizada para errores
+        //         Flight::halt($statusCode, json_encode([
+        //             "message" => "Error: ". $error->getMessage(),
+        //         ]));
+        //     }
+        // }
 
 
         

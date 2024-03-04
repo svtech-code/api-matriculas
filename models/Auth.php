@@ -5,6 +5,7 @@
     use Models\Connection;
     use Firebase\JWT\JWT;
     use Firebase\JWT\Key;
+    use Firebase\JWT\ExpiredException;
     use Exception;
     use Flight;
     use PDO;
@@ -41,7 +42,8 @@
                     $now = strtotime("now");
                     $key = $_ENV['JWT_KEY'];
                     $payload = [
-                        'exp' => $now + 21600,
+                        // 'exp' => $now + 21600,
+                        'exp' => $now + 10,
                         'id_usuario' => $userAccount->id_cuenta_usuario,
                         'id_privilegio' => $userAccount->id_privilegio
                     ];
@@ -58,7 +60,7 @@
                 throw new Exception("El e-mail ingresado no tiene cuenta de usuario", 406);
                 
             } catch (Exception $error) {
-                $statusCode = $error->getCode() ?: 404;
+                $statusCode = $error->getCode() ? $error->getCode() : 404;
 
                 Flight::halt($statusCode, json_encode([
                     "message" => "Error: ". $error->getMessage(),
@@ -84,8 +86,14 @@
 
             try {
                 return JWT::decode($token, new Key($key, 'HS256'));
+
+            } catch (ExpiredException $expiredException) {
+                Flight::halt(401, json_encode([
+                    "message" => "Error: ". $expiredException->getMessage(),
+                ]));
+
             } catch (Exception $error) {
-                $statusCode = $error->getCode() ?: 404;
+                $statusCode = $error->getCode() ? $error->getCode() : 404;
 
                 Flight::halt($statusCode, json_encode([
                     "message" => "Error: ". $error->getMessage(),
@@ -107,12 +115,8 @@
                     throw new Exception("Usuario no valido !", 401);
                 }
 
-                // revisar si es necesario utilizar este fragmento de codigo !!!!
-                // $privilegeAccount = $query->fetch(PDO::FETCH_OBJ);
-                // return $privilegeAccount->id_privilegio;
-
             } catch (Exception $error) {
-                $statusCode = $error->getCode() ?: 404;
+                $statusCode = $error->getCode() ? $error->getCode(): 404;
                 
                 Flight::halt($statusCode, json_encode([
                     "message" => "Error: ". $error->getMessage(),
@@ -131,15 +135,16 @@
                 }
 
             } catch (Exception $error) {
-                $statusCode = $error->getCode() ?: 404;
+                $statusCode = $error->getCode() ? $error->getCode() : 404;
 
-                Flight::halt($statusCode, json_encode([                    
+                Flight::halt($statusCode, json_encode([
                     "message" => "Error: ". $error->getMessage(),
                 ]));
             }    
         }
 
-        // metodo para validar la sesion, ver si solo utilizo el metodo validateToken() !!!
+        // metodo para validar la sesion
+        // permite verificar el token, sin tener que acceder al metodo protegido
         public function validateSession() {
             try {
                 $this->validateToken();

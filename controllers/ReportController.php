@@ -5,6 +5,7 @@
     Flight::route('GET /report/getCertificadoAlumnoRegular/@rut/@periodo', [$report, "getCertificadoAlumnoRegular"]);
     Flight::route('GET /report/getReportMatricula/@dateFrom/@dateTo/@periodo', [$report, "getReportMatricula"]);
     Flight::route('GET /report/getReportProcessMatricula/@periodo', [$report, "getReportProcessMatricula"]);
+    Flight::route('GET /report/getReportCourses/@periodo', [$report, "getReportCourses"]);
 
 
 

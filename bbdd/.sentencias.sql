@@ -170,5 +170,45 @@
 
 
 
+-- ---------------------------> FUNCION PARA ACTUALIZAR TODAS LAS FECHAS ALTA, SI SE MODIFICA LA FECHA DE INICIO DE CLASES
+-- -- creación de la función de actualizacion
+-- CREATE OR REPLACE FUNCTION libromatricula.update_course_assignment_date()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+-- 	-- Condición para controlar el año lectivo
+-- 	IF EXTRACT(YEAR FROM NEW.fecha_inicio_clases) <> OLD.anio_lectivo THEN
+-- 		RAISE EXCEPTION 'La fecha debe ser dentro del año %', OLD.anio_lectivo;
+-- 	END IF;
+	
+-- 	-- Condición para evitar cambio de fecha si no esta habilitado
+-- 	IF NEW.fecha_inicio_clases != OLD.fecha_inicio_clases
+-- 	AND OLD.permitir_modificar_fecha <> true THEN
+-- 		RAISE EXCEPTION 'La fecha no puede modificarse';
+-- 	END IF;
+
+-- 	-- Condición para efectual la actualización masiva en fecha inicio clases
+-- 	IF NEW.fecha_inicio_clases != OLD.fecha_inicio_clases
+-- 	AND OLD.permitir_modificar_fecha = true THEN
+-- 		UPDATE libromatricula.registro_matricula
+-- 		SET fecha_alta_matricula = NEW.fecha_inicio_clases
+-- 		WHERE id_curso IS NOT NULL
+-- 		AND anio_lectivo_matricula = OLD.anio_lectivo;	
+-- 	END IF;
+	
+-- 	RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+-- ---------------------------> TRIGGER LANZADOR DE LA FUNCION CREADA PARA EL UPDATE DE FECHA INICIO CLASES
+-- -- creación del trigger
+-- CREATE OR REPLACE TRIGGER trigger_update_course_assignment_date
+-- AFTER UPDATE ON libromatricula.periodo_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.update_course_assignment_date();
+-- ====================================================================>>
+
+
+
 
 

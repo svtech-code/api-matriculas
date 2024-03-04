@@ -12,48 +12,13 @@
             parent::__construct();
         }
 
-        // public function getCountGrade($periodo) {
-        //     $this->validateToken();
-
-        //     $statementCounGrade = $this->preConsult(
-        //         "SELECT g.grado::integer, 
-        //         CASE WHEN g.grado::integer IN (7,8) THEN 'Básico'
-        //         WHEN g.grado::integer BETWEEN 1 AND 4 THEN 'Medio' END AS nivel,
-        //         COALESCE(COUNT(rm.*), 0) AS count
-        //         FROM (SELECT unnest(ARRAY['7', '8', '1', '2', '3', '4']) AS grado) g
-        //         LEFT JOIN libromatricula.registro_matricula rm ON g.grado::integer = rm.grado AND rm.anio_lectivo_matricula = ?
-        //         GROUP BY g.grado ORDER BY g.grado;"
-        //     );
-
-        //     try {
-        //         $statementCounGrade->execute([intval($periodo)]);
-        //         $countGrade = $statementCounGrade->fetchAll(PDO::FETCH_OBJ);
-        //         foreach($countGrade as $grade) {
-        //             $this->array[] = [
-        //                 "grado" => $grade->grado,
-        //                 "nivel" => $grade->nivel,
-        //                 "count" => $grade->count,
-        //             ];
-        //         }
-        //         Flight::json($this->array);
-
-        //     } catch (Exception $error) {
-        //         Flight::halt(400, json_encode([
-        //             "message" => "Error: ". $error->getMessage()
-        //         ]));
-
-        //     } finally {
-        //         $this->closeConnection();
-        //     }
-
-            
-            
-        // }
-
         // método para obtener un listado de las matriculas y sus respectivos cursos
         public function getCourseAll($periodo) {
             // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 4]);
 
             // sentencia SQL
             $statementCourse = $this->preConsult(
@@ -115,49 +80,212 @@
 
         }
 
+        // método para obtener lista de cursos // grados y sus letras correspondientes
         public function getListCourse($periodo) {
             // se valida el token del usuario
             $this->validateToken();
 
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 4]);
+
             // sentencia SQL
             $statementListCourse = $this->preConsult(
-                "SELECT DISTINCT letra_curso
+                "SELECT grado_curso AS grado,
+                json_agg(DISTINCT CONCAT(grado_curso, letra_curso)) AS letras
                 FROM libromatricula.registro_curso
                 WHERE periodo_escolar = ?
-                GROUP BY letra_curso;"
+                GROUP BY grado_curso ORDER BY grado_curso;"
             );
 
             try {
                 // se ejecuta la consulta
-                $statementListCourse->execute([intval($periodo)]);
+                $statementListCourse->execute([$periodo]);
 
-                // se obtiene un objeto con los datos de la consutla
-                // $grades = $statementGrade->fetchAll(PDO::FETCH_OBJ);
-                $listCourse = $statementListCourse->fetchAll(PDO::FETCH_COLUMN);
+                // se obtiene un objeto con los datos de la consulta
+                $listCourse = $statementListCourse->fetchAll(PDO::FETCH_OBJ);
 
-                // se recorre el objeto para obtener un array con todos los datos de la consulta
-                // foreach($grades as $grade) {
-                //     $this->array[] = [
-                //         "curso" => $grade->letra_curso,
-                //     ];
-                // }
-                $this->array = ["listCourse" => $listCourse];
+                // se recorre el objeto para obtener un array con los datos consultados
+                foreach ($listCourse as $course) {
+                    $this->array[] = [
+                        "grado" => $course->grado,
+                        "letra" => $course->letras,
+                    ];
+                }
 
                 // se devuelve un array con todos los datos de matricula
                 Flight::json($this->array);
 
             } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementListCourse);
+
                 // expeción personalizada para errores
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                 // cierre de la conexión con la base de datos
-                 $this->closeConnection();
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+        }
+
+        // método para consultar fecha de inicio de clases del periodo
+        public function getClassStartDate($periodo) {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 4]);
+
+            // sentencia SQL
+            $statementClassStartDate = $this->preConsult(
+                //"SELECT p.fecha_inicio_clases
+                "SELECT to_char(p.fecha_inicio_clases, 'YYYY/MM/DD') AS fecha_inicio_clases
+                FROM libromatricula.periodo_matricula AS p
+                WHERE p.anio_lectivo = ?;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementClassStartDate->execute([$periodo]);
+
+                // se obtiene un objeto del resultado de la consulta
+                $startDate = $statementClassStartDate->fetch(PDO::FETCH_OBJ);
+
+                // devolvemos como respuesta la fecha de inicio de clases
+                Flight::json($startDate->fecha_inicio_clases);
+
+
+            } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementClassStartDate);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                $this->closeConnection();
             }
 
         }
+
+        // método para actualizar el curso de una matricula
+        public function updateLetterCourse() {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 4]);
+            
+            // obtención de los datos para actualización
+            $course = Flight::request()->data;
+
+            // obtención de letra y grado por separados
+            $grado = substr($course->curso, 0, 1);
+            $letra = substr($course->curso, 1, 1);
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementUpdateLetterCourse = $this->preConsult(
+                "UPDATE libromatricula.registro_matricula
+                SET id_curso = (
+                    SELECT id_curso
+                    FROM libromatricula.registro_curso
+                    WHERE grado_curso = ? 
+                    AND letra_curso = ? 
+                    AND periodo_escolar = ?
+                    ), fecha_alta_matricula = ?
+                WHERE id_registro_matricula = ? 
+                AND anio_lectivo_matricula = ?;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementUpdateLetterCourse->execute([
+                    $grado,                 // grado del curso
+                    $letra,                 // letra del curso
+                    $course->periodo,       // periodo del curso
+                    $course->fechaAlta,     // fecha correspondiente a la asignacion del curso
+                    $course->idMatricula,   // id de la matricula
+                    $course->periodo        // periodo de la matricula
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // retorno del curso asignado
+                Flight::json($course->curso);
+
+            } catch (Exception $error) {
+                // revertir transacción en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencuión de mensaje de error de potgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementUpdateLetterCourse);
+
+                // excepción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError, 
+                ]));
+
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+        }
+
+        // public function respaldo_getListCourse($periodo) {
+        //     // se valida el token del usuario
+        //     $this->validateToken();
+
+        //     // sentencia SQL
+        //     $statementListCourse = $this->preConsult(
+        //         "SELECT DISTINCT letra_curso
+        //         FROM libromatricula.registro_curso
+        //         WHERE periodo_escolar = ?
+        //         GROUP BY letra_curso;"
+        //     );
+
+        //     try {
+        //         // se ejecuta la consulta
+        //         $statementListCourse->execute([intval($periodo)]);
+
+        //         // se obtiene un objeto con los datos de la consutla
+        //         // $grades = $statementGrade->fetchAll(PDO::FETCH_OBJ);
+        //         $listCourse = $statementListCourse->fetchAll(PDO::FETCH_COLUMN);
+
+        //         // se recorre el objeto para obtener un array con todos los datos de la consulta
+        //         // foreach($grades as $grade) {
+        //         //     $this->array[] = [
+        //         //         "curso" => $grade->letra_curso,
+        //         //     ];
+        //         // }
+        //         $this->array = ["listCourse" => $listCourse];
+
+        //         // se devuelve un array con todos los datos de matricula
+        //         Flight::json($this->array);
+
+        //     } catch (Exception $error) {
+        //         // expeción personalizada para errores
+        //         Flight::halt(404, json_encode([
+        //             "message" => "Error: ". $error->getMessage()
+        //         ]));
+
+        //     } finally {
+        //          // cierre de la conexión con la base de datos
+        //          $this->closeConnection();
+        //     }
+
+        // }
 
         
             

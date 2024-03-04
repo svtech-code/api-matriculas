@@ -8,11 +8,41 @@
     use PhpOffice\PhpWord\TemplateProcessor;
     use PhpOffice\PhpWord\Settings;
     use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
-    use PhpOffice\PhpSpreadsheet\Style\{Color, Font};
+    use PhpOffice\PhpSpreadsheet\Style\{Fill};
 
     class Report extends Auth {
         private $tempDir = './document';
         private $currentMonth = '';
+        private $styleTitle = [
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => [
+                    'argb' => 'FFCCCCCC', // color gris
+                ],
+            ],
+            'font' => [
+                'bold' => true,
+                'size' => 13,
+            ],
+        ];
+        private $styleRetired = [
+            'font' => [
+                'strikethrough' => true,
+                'bold' => true,
+                'color' => [
+                    'argb' => 'FF0000', // color rojo
+                ],
+            ],
+        ];
+        private $styleOrange = [
+            'font' => [
+                // 'strikethrough' => true,
+                'bold' => true,
+                'color' => [
+                    'argb' => 'FFA500', // color rojo
+                ],
+            ],
+        ];
         private $month = [
             'January' => 'Enero',
             'February' => 'Febrero',
@@ -34,6 +64,33 @@
             if (!file_exists($this->tempDir)) mkdir($this->tempDir, 0777, true);
             Settings::setTempDir($this->tempDir);
             $this->currentMonth = date('F');
+        }
+
+        // método para la creación del archivo excel
+        private function createExcelObject($title) {
+            // se crea un objeto libro de excel
+            $file = new Spreadsheet();
+            
+            // se aplican algunas propiedades al objeto libro de excel
+            $file
+                ->getProperties()
+                ->setCreator('Dpto. Informátice')
+                ->setLastModifiedBy('Informática')
+                ->setTitle($title);
+
+            return $file;
+        }
+
+        // método de descarga del archivo excel
+        private function downloadExcelFile($file, $period) {
+            // cabeceras de la descarga
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="ReporteCursos_'.$period.'xlsx"');
+            header('Cache-Control: max-age=0');
+
+            // se genera el archivo excel
+            $writer = IOFactory::createWriter($file, 'Xlsx');
+            $writer->save('php://output');
         }
 
         // método para obtener certificado de matricula
@@ -173,12 +230,15 @@
                 unlink($templateCertificadoAlumnoRegularTemp);
 
             } catch (Exception $error) {
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementReport);
+
                 // obtención del codigo de error
-                $statusCode = $error->getCode() ?: 404;
+                $statusCode = $error->getCode() ? $error->getCode() : 404;
 
                 // expeción personalizada para errores
                 Flight::halt($statusCode, json_encode([
-                    "message" => "Error: ". $error->getMessage(),
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
@@ -192,6 +252,9 @@
         public function getReportMatricula($dateFrom, $dateTo, $periodo) {
             // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
 
             // sentencia SQL
             $statementReportMatricula = $this->preConsult(
@@ -356,6 +419,151 @@
                 // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
+
+        }
+
+        // método para obtener reporte de estudiantes por curso
+        // preguntar sobre como trabajar el nombre social ?????
+        public function getReportCourses($periodo) {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementReportCourses = $this->preConsult(
+                "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
+                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
+                FROM libromatricula.registro_matricula AS m
+                LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
+                WHERE m.anio_lectivo_matricula = ?
+                ORDER BY m.numero_matricula;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementReportCourses->execute([intval($periodo)]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // se obtiene un objeto con los datos de la consulta
+                $reportCourses = $statementReportCourses->fetchAll(PDO::FETCH_OBJ);
+
+                // creación del objeto excel
+                $file = $this->createExcelObject("Registro cursos");
+
+                // se comienza a trabajar con la seleccion de hojas y celdas
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle("Registro de cursos");
+                $sheetActive->setShowGridLines(false);                
+                
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+                $sheetActive->setAutoFilter('A3:J3');   
+                $sheetActive->getStyle('A3:J3')->applyFromArray($this->styleTitle);
+
+                // titulo de la hoja de excel
+                $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
+
+                // ancho de las celdas
+                $sheetActive->getColumnDimension('A')->setWidth(18);
+                $sheetActive->getColumnDimension('B')->setWidth(14);
+                $sheetActive->getColumnDimension('C')->setWidth(18);
+                $sheetActive->getColumnDimension('D')->setWidth(18);
+                $sheetActive->getColumnDimension('E')->setWidth(14);
+                $sheetActive->getColumnDimension('F')->setWidth(22);
+                $sheetActive->getColumnDimension('G')->setWidth(22);
+                $sheetActive->getColumnDimension('H')->setWidth(30);
+                $sheetActive->getColumnDimension('I')->setWidth(22);
+                $sheetActive->getColumnDimension('J')->setWidth(22);
+
+                // alineación del contenido de las celdas
+                $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
+
+                // título de las columnas
+                $sheetActive->setCellValue('A3', 'Nº MATRICULA');
+                $sheetActive->setCellValue('B3', 'CURSO');
+                $sheetActive->setCellValue('C3', 'FECHA ALTA');
+                $sheetActive->setCellValue('D3', 'FECHA RETIRO');
+                $sheetActive->setCellValue('E3', 'SEXO');
+                $sheetActive->setCellValue('F3', 'APELLIDO PATERNO');
+                $sheetActive->setCellValue('G3', 'APELLIDO MATERNO');
+                $sheetActive->setCellValue('H3', 'NOMBRES');
+                $sheetActive->setCellValue('I3', 'RUT ESTUDIANTE');
+                $sheetActive->setCellValue('J3', 'ESTADO ESTUDIANTE');
+
+                // inicio de la fila
+                $fila = 4;
+
+                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
+                foreach ($reportCourses as $course) {
+                    $sheetActive->setCellValue('A'.$fila, $course->numero_matricula);
+                    $sheetActive->setCellValue('B'.$fila, $course->curso);
+                    $sheetActive->setCellValue('C'.$fila, $course->fecha_alta_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $course->fecha_baja_matricula);
+                    $sheetActive->setCellValue('E'.$fila, $course->sexo_estudiante);
+                    $sheetActive->setCellValue('F'.$fila, $course->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $course->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $course->nombres_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $course->rut_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $course->estado_estudiante);
+
+                    // aplicar estilo color rojo para retirados
+                    if ($course->estado_estudiante === 'Retirado (a)') {
+                        $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleRetired);
+                    }
+
+                    // aplicar estilo color naranjo para suspendidos
+                    if ($course->estado_estudiante === 'Suspendido (a)') {
+                        $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleOrange);
+                    }
+                    
+                    $fila++;
+                }
+
+                // descarga del archivo excel ========================>
+                $this->downloadExcelFile($file, $periodo);
+
+            } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementReportCourses);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+
+
+
+        }
+
+        // trabajar en método para descargar reporte por curso !!!!!!
+        public function getReportCourseLetter($periodo, $course) {
 
         }
 
