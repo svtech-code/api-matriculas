@@ -245,7 +245,7 @@
 -- **************************** TRIGGER ****************************
 -- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR CAMBIOS DE CURSO
 
--- CREATE OR REPLACE TRIGGER course_change_lof_trigger
+-- CREATE OR REPLACE TRIGGER course_change_log_trigger
 -- AFTER UPDATE ON libromatricula.registro_matricula
 -- FOR EACH ROW
 -- EXECUTE FUNCTION libromatricula.course_change_log_function();
