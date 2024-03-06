@@ -106,7 +106,11 @@
 -- ====================================================================>>
 
 
+
+
+-- **************************** FUNCTION ****************************
 -- ---------------------------> FUNCION PARA VERIFICAR ESTUDIANTE EXISTENTE POR PERIODO Y GENERACION DE NUMERO DE MATRICUAL
+
 -- CREATE OR REPLACE FUNCTION libromatricula.set_new_matricula()
 -- 	RETURNS TRIGGER AS $$
 	
@@ -159,6 +163,7 @@
 -- ====================================================================>>
 
 
+-- **************************** TRIGGER ****************************
 -- ---------------------------> TRIGGER LANZADOR DE LA FUNCION CREADA PARA EL INSERT DE UNA MATRICULA
 -- CREATE OR REPLACE TRIGGER before_insert_matricula
 -- 	BEFORE INSERT ON libromatricula.registro_matricula
@@ -169,9 +174,9 @@
 
 
 
-
+-- **************************** FUNCTION ****************************
 -- ---------------------------> FUNCION PARA ACTUALIZAR TODAS LAS FECHAS ALTA, SI SE MODIFICA LA FECHA DE INICIO DE CLASES
--- -- creación de la función de actualizacion
+
 -- CREATE OR REPLACE FUNCTION libromatricula.update_course_assignment_date()
 -- RETURNS TRIGGER AS $$
 -- BEGIN
@@ -200,12 +205,50 @@
 -- $$ LANGUAGE plpgsql;
 -- ====================================================================>>
 
+
+-- **************************** TRIGGER ****************************
 -- ---------------------------> TRIGGER LANZADOR DE LA FUNCION CREADA PARA EL UPDATE DE FECHA INICIO CLASES
+
 -- -- creación del trigger
 -- CREATE OR REPLACE TRIGGER trigger_update_course_assignment_date
 -- AFTER UPDATE ON libromatricula.periodo_matricula
 -- FOR EACH ROW
 -- EXECUTE FUNCTION libromatricula.update_course_assignment_date();
+-- ====================================================================>>
+
+
+
+
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR CAMBIOS DE CURSO
+
+-- CREATE OR REPLACE FUNCTION libromatricula.course_change_log_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+-- 	IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+-- 		INSERT INTO libromatricula.course_change_log 
+-- 			(id_matricula, id_old_course, old_list_number, old_assignment_date,
+-- 			 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
+-- 		VALUES 
+-- 			(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+-- 			 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
+--           NEW.id_usuario_responsable);
+-- 	END IF;
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR CAMBIOS DE CURSO
+
+-- CREATE OR REPLACE TRIGGER course_change_lof_trigger
+-- AFTER UPDATE ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.course_change_log_function();
 -- ====================================================================>>
 
 

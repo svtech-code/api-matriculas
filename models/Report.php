@@ -8,7 +8,7 @@
     use PhpOffice\PhpWord\TemplateProcessor;
     use PhpOffice\PhpWord\Settings;
     use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
-    use PhpOffice\PhpSpreadsheet\Style\{Fill};
+    use PhpOffice\PhpSpreadsheet\Style\{Fill, Border};
 
     class Report extends Auth {
         private $tempDir = './document';
@@ -31,6 +31,15 @@
                 'bold' => true,
                 'color' => [
                     'argb' => 'FF0000', // color rojo
+                ],
+            ],
+        ];
+
+        // revisar
+        private $borderCompleteStyle = [
+            'borders' => [
+                'allborders' => [
+                    'borderStyle' => Border::BORDER_THIN,
                 ],
             ],
         ];
@@ -82,10 +91,10 @@
         }
 
         // método de descarga del archivo excel
-        private function downloadExcelFile($file, $period) {
+        private function downloadExcelFile($file, $title, $period) {
             // cabeceras de la descarga
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="ReporteCursos_'.$period.'xlsx"');
+            header('Content-Disposition: attachment;filename="'. $title. '_'. $period. 'xlsx"');
             header('Cache-Control: max-age=0');
 
             // se genera el archivo excel
@@ -538,7 +547,7 @@
                 }
 
                 // descarga del archivo excel ========================>
-                $this->downloadExcelFile($file, $periodo);
+                $this->downloadExcelFile($file, "ReporteCursos_", $periodo);
 
             } catch (Exception $error) {
                 // revertir transaccion en caso de error
@@ -563,7 +572,173 @@
         }
 
         // trabajar en método para descargar reporte por curso !!!!!!
-        public function getReportCourseLetter($periodo, $course) {
+        public function getReportCourse($periodo, $course) {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
+
+            // obtención de letra y grado por separados
+            $grado = substr($course, 0, 1);
+            $letra = substr($course, 1, 1);
+            
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementReportCourseLetter = $this->preConsult(
+                "SELECT --m.numero_lista_curso, -- revisar si lo integro 
+                ROW_NUMBER() OVER(
+                ORDER BY
+                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END
+                ) AS numero_correlativo, m.numero_matricula,
+                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                FROM libromatricula.registro_matricula AS m
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
+                WHERE anio_lectivo_matricula = ?
+                AND id_estado_matricula <> 4
+                AND id_curso = (SELECT id_curso	
+                    FROM libromatricula.registro_curso
+                    WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?)
+                ORDER BY
+                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementReportCourseLetter->execute([
+                    intval($periodo),       // anio_lectivo de inner join
+                    intval($periodo),       // anio_lectivo la información del periodo
+                    intval($grado),         // grado para seleccion del id curso
+                    $letra,                 // letra para seleccion del id curso
+                    intval($periodo),       // anio_lectivo para selección del id curso
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // se obtiene un objeto con los datos de la consulta
+                $reportCourseLetter = $statementReportCourseLetter->fetchAll(PDO::FETCH_OBJ);
+                // Flight::json($reportCourseLetter);
+
+                // creación del objeto excel
+                $file = $this->createExcelObject("Nómina ". $course. " ". $periodo);
+
+                // se comienza a trabajar con la seleccion de hojas y celdas
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle($course);
+                $sheetActive->setShowGridLines(false);                
+                
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(22);
+                $sheetActive->setAutoFilter('A3:I3');   
+                $sheetActive->getStyle('A3:I3')->applyFromArray($this->styleTitle);
+
+
+                // titulo de la hoja de excel
+                $sheetActive->setCellValue('A1', 'CURSO '. $course);
+
+                // ancho de las celdas
+                $sheetActive->getColumnDimension('A')->setWidth(7);
+                $sheetActive->getColumnDimension('B')->setWidth(10);
+                $sheetActive->getColumnDimension('C')->setWidth(12);
+                $sheetActive->getColumnDimension('D')->setWidth(12);
+                $sheetActive->getColumnDimension('E')->setWidth(8);
+                $sheetActive->getColumnDimension('F')->setWidth(20);
+                $sheetActive->getColumnDimension('G')->setWidth(20);
+                $sheetActive->getColumnDimension('H')->setWidth(26);
+                $sheetActive->getColumnDimension('I')->setWidth(16);
+
+                // alineación del contenido de las celdas
+                $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal("center");
+                $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
+                $sheetActive->getStyle('A3:E3')->getAlignment()->setHorizontal("center");
+                $sheetActive->getStyle('A3:I3')->getAlignment()->setVertical("center");
+                $sheetActive->getStyle('A3:I3')->getAlignment()->setWrapText(true);
+                
+                // título de las columnas
+                $sheetActive->setCellValue('A3', 'Nº Lista');
+                $sheetActive->setCellValue('B3', 'Nº Matrícula');
+                $sheetActive->setCellValue('C3', 'Ingreso');
+                $sheetActive->setCellValue('D3', 'Retiro');
+                $sheetActive->setCellValue('E3', 'Sexo');
+                $sheetActive->setCellValue('F3', 'Apellido paterno');
+                $sheetActive->setCellValue('G3', 'Apellido materno');
+                $sheetActive->setCellValue('H3', 'Nombres');
+                $sheetActive->setCellValue('I3', 'Rut');
+
+                // estilo de los bordes
+                $sheetActive->getStyle('A3:I3')->applyFromArray($this->borderCompleteStyle);
+
+                // inicio de la fila
+                $fila = 4;
+
+                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
+                foreach ($reportCourseLetter as $courseLetter) {
+                    $sheetActive->setCellValue('A'.$fila, $courseLetter->numero_correlativo);
+                    $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_matricula);
+                    $sheetActive->setCellValue('C'.$fila, $courseLetter->fecha_alta_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $courseLetter->fecha_baja_matricula);
+                    $sheetActive->setCellValue('E'.$fila, $courseLetter->sexo_estudiante);
+                    $sheetActive->setCellValue('F'.$fila, $courseLetter->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $courseLetter->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $courseLetter->nombres_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $courseLetter->rut_estudiante);
+
+                //     // // aplicar estilo color rojo para retirados
+                //     // if ($course->estado_estudiante === 'Retirado (a)') {
+                //     //     $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleRetired);
+                //     // }
+
+                //     // // aplicar estilo color naranjo para suspendidos
+                //     // if ($course->estado_estudiante === 'Suspendido (a)') {
+                //     //     $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleOrange);
+                //     // }
+                    
+                    $fila++;
+                }
+
+                // descarga del archivo excel ========================>
+                $this->downloadExcelFile($file, "Nómina ". $course. "_". $periodo, $periodo);
+
+
+
+
+            } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementReportCourseLetter);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+
+
+
+
 
         }
 

@@ -179,6 +179,9 @@
 
             // se validan los privilegios del usuario
             $this->validatePrivilege([1, 4]);
+
+            // se obtiene el id_usuario del token
+            $usserId = $this->getToken()->id_usuario;
             
             // obtención de los datos para actualización
             $course = Flight::request()->data;
@@ -200,7 +203,8 @@
                     WHERE grado_curso = ? 
                     AND letra_curso = ? 
                     AND periodo_escolar = ?
-                    ), fecha_alta_matricula = ?
+                    ), 
+                fecha_alta_matricula = ?, fecha_modificacion_matricula = CURRENT_TIMESTAMP, id_usuario_responsable = ?
                 WHERE id_registro_matricula = ? 
                 AND anio_lectivo_matricula = ?;"
             );
@@ -212,6 +216,7 @@
                     $letra,                 // letra del curso
                     $course->periodo,       // periodo del curso
                     $course->fechaAlta,     // fecha correspondiente a la asignacion del curso
+                    $usserId,               // id del usuario responsable de la transacción
                     $course->idMatricula,   // id de la matricula
                     $course->periodo        // periodo de la matricula
                 ]);

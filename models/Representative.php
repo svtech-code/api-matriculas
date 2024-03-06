@@ -11,6 +11,141 @@
             parent::__construct();
         }
 
+        // método para registrar un apoderado
+        public function setRepresentative() {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1]);
+
+            // obtención de la data enviada por el cliente
+            $representative = Flight::request()->data;
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementRepresentative = $this->preConsult(
+                "INSERT INTO libromatricula.registro_apoderado
+                (rut_apoderado, dv_rut_apoderado, apellido_paterno_apoderado,
+                apellido_materno_apoderado, nombres_apoderado, 
+                telefono_apoderado, direccion_apoderado) 
+                VALUES (?, ?, ?, ?, ?, ?, ?);"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementRepresentative->execute([
+                    $representative->rut,
+                    strtoupper($representative->dv_rut),
+                    strtoupper($representative->paterno),
+                    strtoupper($representative->materno),
+                    strtoupper($representative->nombres),
+                    $representative->telefono ? $representative->telefono : null,
+                    $representative->direccion ? strtoupper($representative->direccion) : null,
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // devolución de respuesta exitosa
+                $this->array = ["message" => "success"];
+                Flight::json($this->array);
+
+            } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementRepresentative);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+        }
+
+        // Método para actualizar datos del apoderado
+        public function updateRepresentative() {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1]);
+
+            // obtención de la data enviada por el cliente
+            $representative = Flight::request()->data;
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementUpdateRepresentative = $this->preConsult(
+                "UPDATE libromatricula.registro_apoderado
+                SET rut_apoderado = ?, dv_rut_apoderado = ?, apellido_paterno_apoderado = ?,
+                apellido_materno_apoderado = ?, nombres_apoderado = ?, telefono_apoderado = ?,
+                direccion_apoderado = ?, fecha_modificacion_apoderado = CURRENT_TIMESTAMP
+                WHERE id_apoderado = ?;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementUpdateRepresentative->execute([
+                    $representative->rut,
+                    strtoupper($representative->dv_rut),
+                    strtoupper($representative->paterno),
+                    strtoupper($representative->materno),
+                    strtoupper($representative->nombres),
+                    $representative->telefono ? $representative->telefono : null,
+                    $representative->direccion ? strtoupper($representative->direccion) : null,
+                    intval($representative->id),
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // devolución de respuesta exitosa
+                $this->array = ["message" => "success"];
+                Flight::json($this->array);
+
+            } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementUpdateRepresentative);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+        }
+
+
+
+
+
+        // trabajar estructura y actualización de formatos !!!!
+        // =====================================================>>
+
+
         // método para obtener los datos del apoderado
         public function getRepresentative($rut_representative) {
             $this->validateToken();
@@ -90,72 +225,9 @@
         // ver si es necesario
         // protected function verifyRepresentative()
 
-        // método para registrar un apoderado
-        public function setRepresentative() {
-            $this->validateToken();
-            $representative = Flight::request()->data;
+        
 
-            $statementRepresentative = $this->preConsult(
-                "INSERT INTO libromatricula.registro_apoderado
-                (rut_apoderado, dv_rut_apoderado, apellido_paterno_apoderado,
-                apellido_materno_apoderado, nombres_apoderado, 
-                telefono_apoderado, direccion_apoderado) 
-                VALUES (?, ?, ?, ?, ?, ?, ?);"
-            );
-
-            try {
-                $statementRepresentative->execute([
-                    $representative->rut,
-                    strtoupper($representative->dv_rut),
-                    strtoupper($representative->paterno),
-                    strtoupper($representative->materno),
-                    strtoupper($representative->nombres),
-                    $representative->telefono ? $representative->telefono : null,
-                    $representative->direccion ? strtoupper($representative->direccion) : null,
-                ]);
-
-            } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-            } finally {
-                $this->closeConnection();
-            }
-        }
-
-        // Método para actualizar datos del apoderado
-        public function updateRepresentative() {
-            $this->validateToken();
-
-            $representative = Flight::request()->data;
-            $statementUpdateRepresentative = $this->preConsult(
-                "UPDATE libromatricula.registro_apoderado
-                SET rut_apoderado = ?, dv_rut_apoderado = ?, apellido_paterno_apoderado = ?,
-                apellido_materno_apoderado = ?, nombres_apoderado = ?, telefono_apoderado = ?,
-                direccion_apoderado = ?, fecha_modificacion_apoderado = CURRENT_TIMESTAMP
-                WHERE id_apoderado = ?;"
-            );
-
-            try {
-                $statementUpdateRepresentative->execute([
-                    $representative->rut,
-                    strtoupper($representative->dv_rut),
-                    strtoupper($representative->paterno),
-                    strtoupper($representative->materno),
-                    strtoupper($representative->nombres),
-                    $representative->telefono ? $representative->telefono : null,
-                    $representative->direccion ? strtoupper($representative->direccion) : null,
-                    intval($representative->id),
-                ]);
-
-            } catch (Exception $error) {
-                Flight::halt(400, json_encode([
-                    "message" => "Error: ". $error->getMessage()
-                ]));
-            } finally {
-                $this->closeConnection();
-            }
-        }
+        
 
         // trabajar en el update del apoderado
         // trabajar en el ingreso de apoderado
