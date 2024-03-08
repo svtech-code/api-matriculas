@@ -254,4 +254,14 @@
 
 
 
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR BAJAS DE MATRICULA
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR BAJAS DE MATRICULA
+
+
+
+
 

@@ -17,7 +17,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1]);
+            $this->validatePrivilege([1, 2]);
 
             // obtención de la data enviada por el cliente
             $student = Flight::request()->data;
@@ -92,6 +92,11 @@
         // method to obtain student data
         public function getStudent($rut_student) {
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
+
             $statmentStudent = $this->preConsult(
                 "SELECT e.id_estudiante, e.nombres_estudiante, e.nombre_social_estudiante,
                 e.apellido_paterno_estudiante, e.apellido_materno_estudiante, 
@@ -134,6 +139,10 @@
         // method to obtain the student`s name
         public function getNameStudent($rut_student, $periodo) {
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
             $responseSearch = false;
 
             // @booleano
@@ -213,6 +222,9 @@
         // metodo para actualizar los datos de un estudiante
         public function updateStudent() {
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
 
             // obtencin de los datos
             $student = Flight::request()->data;

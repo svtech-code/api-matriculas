@@ -149,6 +149,11 @@
         // método para obtener los datos del apoderado
         public function getRepresentative($rut_representative) {
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
+
             $statementRepresentative = $this->preConsult(
                 "SELECT a.id_apoderado, a.nombres_apoderado, a.apellido_paterno_apoderado,
                 a.apellido_materno_apoderado, a.telefono_apoderado, a.direccion_apoderado
@@ -188,6 +193,9 @@
         // método para obtener el nombre 
         public function getNameRepresentative($rut_representative) {
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
 
             $statementRepresentative = $this->preConsult(
                 "SELECT id_apoderado, (nombres_apoderado || ' ' || apellido_paterno_apoderado

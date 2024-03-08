@@ -414,6 +414,70 @@
             }
         }
 
+        // método para registrar la baja de una matrícula
+        public function putWithdrawalDateMatricula() {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
+            // se obtiene el id_usuario del token
+            $usserId = $this->getToken()->id_usuario;
+
+            // obtención de los datos enviados desde el cliente
+            $matricula = Flight::request()->data;
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementWithdrawalMatricula = $this->preConsult(
+                "UPDATE libromatricula.registro_matricula
+                SET id_estado_matricula = 4, fecha_baja_matricula = ?, 
+                id_usuario_responsable = ?, fecha_modificacion_matricula = CURRENT_TIMESTAMP
+                WHERE id_registro_matricula = ?
+                AND anio_lectivo_matricula = ?"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementWithdrawalMatricula->execute([
+                    $matricula->fechaRetiro,   // fecha de retiro de la matrícula
+                    $usserId,                   // id del usuario responsable de la transacción
+                    $matricula->idMatricula,    // id de la matricula
+                    $matricula->periodo,        // periodo de la matricula
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // devolución de respuesta exitosa
+                $this->array = ["message" => "success"];
+                Flight::json($this->array);
+
+            } catch (Exception $error) {
+                // revertir transacción en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencuión de mensaje de error de potgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementWithdrawalMatricula);
+
+                // excepción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError, 
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+
+        }
+
 
         // método para obtener estado del proceso de matrícula en curso
         // método empleado para el proceso de matricula, con la finalidad de ver estudiantes matriculados y faltantes

@@ -108,7 +108,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
@@ -178,7 +178,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2]);
 
             // consulta SQL
             $statementReport = $this->preConsult(
@@ -577,7 +577,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 4]);
 
             // obtención de letra y grado por separados
             $grado = substr($course, 0, 1);
@@ -746,6 +746,9 @@
         public function getReportProcessMatricula($periodo) {
             // se valida el token del usuario
             $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
 
             // sentencia SQL
             $statementReportProcessMatricula = $this->preConsult(

@@ -218,7 +218,7 @@
                     $course->fechaAlta,     // fecha correspondiente a la asignacion del curso
                     $usserId,               // id del usuario responsable de la transacción
                     $course->idMatricula,   // id de la matricula
-                    $course->periodo        // periodo de la matricula
+                    $course->periodo,       // periodo de la matricula
                 ]);
 
                 // confirmar transacción
@@ -240,7 +240,6 @@
                 Flight::halt(404, json_encode([
                     "message" => "Error: ". $messageError, 
                 ]));
-
 
             } finally {
                 // cierre de la conexión con la base de datos
