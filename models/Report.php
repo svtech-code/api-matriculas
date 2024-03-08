@@ -594,7 +594,8 @@
                 ORDER BY
                     CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
                     CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.nombres_estudiante ELSE NULL END
                 ) AS numero_correlativo, m.numero_matricula,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
                 to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
@@ -613,7 +614,8 @@
                 ORDER BY
                     CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
                     CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END;"
+                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END,
+                    CASE WHEN p.autocorrelativo_listas THEN e.nombres_estudiante ELSE NULL END;"
             );
 
             try {
