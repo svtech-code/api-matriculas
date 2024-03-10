@@ -589,13 +589,13 @@
 
             // sentencia SQL
             $statementReportCourseLetter = $this->preConsult(
-                "SELECT --m.numero_lista_curso, -- revisar si lo integro 
+                "SELECT
                 ROW_NUMBER() OVER(
                 ORDER BY
-                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.nombres_estudiante ELSE NULL END
+                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_paterno_estudiante) END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_materno_estudiante) END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.nombres_estudiante) END
                 ) AS numero_correlativo, m.numero_matricula,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
                 to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
@@ -612,10 +612,7 @@
                     FROM libromatricula.registro_curso
                     WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?)
                 ORDER BY
-                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_paterno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.apellido_materno_estudiante ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN e.nombres_estudiante ELSE NULL END;"
+                    numero_correlativo;"
             );
 
             try {

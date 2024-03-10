@@ -12,7 +12,7 @@
 -- BEGIN
 --     -- Determinar el nombre de la secuencia según el grado y el periodo
 --     IF grado_param BETWEEN 1 AND 4 THEN
---         sequence_name := 'libromatricula.secuencia_grados_1_4_' || periodo_param;
+--         sequence_name := 'libromatricula.secuencia_grados_ç1_4_' || periodo_param;
 --     ELSIF grado_param BETWEEN 7 AND 8 THEN
 --         sequence_name := 'libromatricula.secuencia_grados_7_8_' || periodo_param;
 --     ELSE
@@ -226,15 +226,15 @@
 -- RETURNS TRIGGER AS $$
 
 -- BEGIN
--- 	IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
--- 		INSERT INTO libromatricula.course_change_log 
--- 			(id_matricula, id_old_course, old_list_number, old_assignment_date,
--- 			 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
--- 		VALUES 
--- 			(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
--- 			 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
---           NEW.id_usuario_responsable);
--- 	END IF;
+	-- IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+	-- 	INSERT INTO libromatricula.course_change_log 
+	-- 		(id_registro_matricula, id_old_course, old_list_number, old_assignment_date,
+	-- 		 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
+	-- 	VALUES 
+	-- 		(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+	-- 		 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
+    --       NEW.id_usuario_responsable);
+	-- END IF;
 -- 	RETURN NEW;
 -- END;
 
@@ -257,11 +257,150 @@
 -- **************************** FUNCTION ****************************
 -- ---------------------------> FUNCION PARA REGISTRAR BAJAS DE MATRICULA
 
+-- CREATE OR REPLACE FUNCTION libromatricula.registration_withdrawal_log_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+	-- IF (NEW.fecha_baja_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
+	-- 	INSERT INTO libromatricula.registration_withdrawal_log
+	-- 		(id_registro_matricula, withdrawal_date, id_responsible_user)
+	-- 	VALUES
+	-- 		(OLD.id_registro_matricula, NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
+	-- END IF;
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
 
 -- **************************** TRIGGER ****************************
 -- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR BAJAS DE MATRICULA
 
+-- CREATE OR REPLACE TRIGGER registration_withdrawal_log_trigger
+-- AFTER UPDATE ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.registration_withdrawal_log_function();
+-- ====================================================================>>
 
 
 
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR BAJAS Y RETIROS PARA USAR EN NOMINA DE CURSOS 
+-- (REEMPLAZA A LAS FUNCIONES PARA EL REGISTRO DE LOG DE CAMBIO DE CURSO Y RETIRO DE MATRICULA)
+
+-- CREATE OR REPLACE FUNCTION libromatricula.change_course_and_withdrawal_registration_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+-- 	-- registro de log, para uso en nómina de estudiantes
+-- 	-- verificar si el autocorrelativo esta activado (significa el estado de las listas oficiales)
+-- 	IF NOT (SELECT autocorrelativo_listas FROM libromatricula.periodo_matricula WHERE anio_lectivo = OLD.anio_lectivo_matricula) THEN
+
+-- 		-- registro por cambio de curso
+-- 		IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+-- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
+-- 				(id_registro_matricula, id_old_course, old_number_list, witdrawal_date, id_responsible_user)
+-- 			VALUES
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso,
+-- 				 NEW.fecha_alta_matricula, NEW.id_usuario_responsable);
+-- 		END IF;
+
+-- 		-- registro por retiro de matrícula
+-- 		IF NEW.fecha_baja_matricula IS NOT NULL and NEW.id_estado_matricula = 4 THEN
+-- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
+-- 				(id_registro_matricula, id_old_course, old_number_list, witdrawal_date, id_responsible_user)
+-- 			VALUES
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso,
+-- 				 NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
+-- 		END IF;
+		
+-- 		-- actualizar numero lista curso máximo del curso al que se asigna un estudiante
+-- 		IF NEW.id_curso <> OLD.id_curso OR OLD.id_curso IS NULL THEN
+-- 			UPDATE libromatricula.registro_curso
+-- 			SET numero_lista_curso = NEW.numero_lista_curso
+-- 			WHERE id_curso = NEW.id_curso AND periodo_escolar = OLD.anio_lectivo_matricula;
+-- 		END IF;
+		
+-- 		-- asignar nuevo numero de lista a matricula
+-- 	END IF;
+	
+-- 	-- registro log para los cambios de curso
+-- 	IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+-- 		INSERT INTO libromatricula.change_course_log 
+-- 			(id_registro_matricula, id_old_course, old_list_number, old_assignment_date,
+-- 			 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
+-- 		VALUES 
+-- 			(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+-- 			 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
+--           NEW.id_usuario_responsable);
+-- 	END IF;
+	
+-- 	-- registro log para los retiros de matricula
+-- 	IF (NEW.fecha_baja_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
+-- 		INSERT INTO libromatricula.registration_withdrawal_log
+-- 			(id_registro_matricula, withdrawal_date, id_responsible_user)
+-- 		VALUES
+-- 			(OLD.id_registro_matricula, NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
+-- 	END IF;
+	
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR BAJAS Y RETIROS
+
+-- CREATE OR REPLACE TRIGGER change_course_and_withdrawal_registration_trigger
+-- AFTER UPDATE ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.change_course_and_withdrawal_registration_function();
+-- ====================================================================>>
+
+
+
+
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA ASIGNAR LOS NÚMEROS DE LISTA MÁXIMOS DE CADA CURSO
+
+-- CREATE OR REPLACE FUNCTION libromatricula.maximum_list_number_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+-- 	-- condición para generar actualización
+-- 	IF NEW.autocorrelativo_listas = FALSE THEN
+-- 		-- actualizar numero máximo de lista de cada curso
+-- 		UPDATE libromatricula.registro_curso c
+-- 		SET numero_lista_curso = (
+-- 			SELECT MAX(m.numero_lista_curso)
+-- 			FROM libromatricula.registro_matricula m
+-- 			WHERE m.id_curso = c.id_curso AND m.anio_lectivo_matricula = OLD.anio_lectivo
+-- 		)
+-- 		-- permite que la actualización se aplique a todos los id_curso que esten en registro_matricula
+-- 		-- y que además correspondan al año lectivo del autocorrelativo_lista que se actualiza
+-- 		WHERE EXISTS (
+-- 			SELECT 1
+-- 			FROM libromatricula.registro_matricula m
+-- 			WHERE m.id_curso = c.id_curso AND m.anio_lectivo_matricula = OLD.anio_lectivo
+-- 		);
+-- 	END IF;
+	
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA ASIGNAR LOS NÚMEROS DE LISTA MÁXIMOS DE CADA CURSO
+
+-- CREATE OR REPLACE TRIGGER maximum_list_number_trigger
+-- AFTER UPDATE ON libromatricula.periodo_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.maximum_list_number_function();
+-- ====================================================================>>
 

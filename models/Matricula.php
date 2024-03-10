@@ -414,7 +414,7 @@
             }
         }
 
-        // método para registrar la baja de una matrícula
+        // método para registrar el retiro de una matricula
         public function putWithdrawalDateMatricula() {
             // se valida el token del usuario
             $this->validateToken();
