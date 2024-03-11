@@ -273,7 +273,7 @@ use DateTimeZone;
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2, 3, 4]);
 
             // sentencia SQL
             $statementReportMatricula = $this->preConsult(
