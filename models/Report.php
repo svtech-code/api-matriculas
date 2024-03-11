@@ -1,6 +1,8 @@
 <?php
     namespace Models;
 
+use DateTime;
+use DateTimeZone;
     use Models\Auth;
     use Exception;
     use Flight;
@@ -9,7 +11,7 @@
     use PhpOffice\PhpWord\Settings;
     use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
     use PhpOffice\PhpSpreadsheet\Style\{Fill, Border};
-    use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+    // use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
     use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
     class Report extends Auth {
@@ -770,9 +772,14 @@
                 $sheetActive->setCellValue('G58', $countFemale);
                 $sheetActive->setCellValue('G59', $countTotal);
 
-                // fecha de descarga
-                $sheetActive->setCellValue('J60', date("d-m-Y H:i:d"));
-
+                // Establecer la zona horaria de Chile
+                $zonaHorariaChile = new DateTimeZone('America/Santiago');
+                
+                // Crear un objeto DateTime con la zona horaria de Chile
+                $horaActualChile = new DateTime('now', $zonaHorariaChile);
+                
+                // insertar fecha y hora actual en que se genera la nómina
+                $sheetActive->setCellValue('J60', $horaActualChile->format('d-m-Y H:i:s'));
 
                 // Configuración del encabezado HTTP para la descarga del archivo
                 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
