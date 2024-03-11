@@ -587,7 +587,7 @@ use DateTimeZone;
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 4]);
+            $this->validatePrivilege([1, 2, 4]);
 
             // obtención de letra y grado por separados
             $grado = substr($course, 0, 1);
