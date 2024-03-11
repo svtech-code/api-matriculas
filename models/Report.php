@@ -9,6 +9,8 @@
     use PhpOffice\PhpWord\Settings;
     use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
     use PhpOffice\PhpSpreadsheet\Style\{Fill, Border};
+    use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+    use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
     class Report extends Auth {
         private $tempDir = './document';
@@ -32,6 +34,12 @@
                 'color' => [
                     'argb' => 'FF0000', // color rojo
                 ],
+            ],
+        ];
+        private $styleWithdrawal = [
+            'font' => [
+                'strikethrough' => true,
+                'bold' => true,
             ],
         ];
 
@@ -589,40 +597,122 @@
 
             // sentencia SQL
             $statementReportCourseLetter = $this->preConsult(
-                "SELECT
-                ROW_NUMBER() OVER(
+                "SELECT 
+                    numero_lista,
+                    numero_matricula,
+                    fecha_alta_matricula,
+                    fecha_baja_matricula,
+                    sexo_estudiante,
+                    apellido_paterno_estudiante,
+                    apellido_materno_estudiante,
+                    nombres_estudiante,
+                    rut_estudiante
+                FROM (
+                    SELECT			
+                        CASE
+                            WHEN p.autocorrelativo_listas THEN
+                                ROW_NUMBER() OVER(
+                                    ORDER BY
+                                        unaccent(e.apellido_paterno_estudiante),
+                                        unaccent(e.apellido_materno_estudiante),
+                                        unaccent(e.nombres_estudiante)
+                                )
+                            ELSE
+                                m.numero_lista_curso
+                        END AS numero_lista,
+                        m.numero_matricula,
+                        TO_CHAR(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                        TO_CHAR(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                        CASE
+                            WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+                        e.apellido_paterno_estudiante, 
+                        e.apellido_materno_estudiante,
+                        CASE 
+                            WHEN e.nombre_social_estudiante IS NULL THEN 
+                                e.nombres_estudiante 
+                            ELSE 
+                                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+                        (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                    FROM 
+                        libromatricula.registro_matricula AS m
+                        INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                        INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
+                        INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                    WHERE
+                        m.anio_lectivo_matricula = ?
+                        AND m.id_estado_matricula <> 4
+                        AND c.grado_curso = ?
+                        AND c.letra_curso = ?
+                        AND c.periodo_escolar = ?
+                    
+                    UNION ALL
+                    
+                    -- SELECT 
+                    --     l.old_number_list AS numero_lista,
+                    --     m.numero_matricula,
+                    --     TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                    --     TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                    --     CASE
+                    --         WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+                    --     e.apellido_paterno_estudiante, 
+                    --     e.apellido_materno_estudiante,
+                    --     CASE 
+                    --         WHEN e.nombre_social_estudiante IS NULL THEN 
+                    --             e.nombres_estudiante 
+                    --         ELSE 
+                    --             '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+                    --     (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                    -- FROM 
+                    --     libromatricula.student_withdrawal_from_list_log AS l
+                    --     INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
+                    --     INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                    --     INNER JOIN libromatricula.registro_curso AS c ON c.grado_curso = ? AND c.letra_curso = ? AND c.periodo_escolar = ?
+                    -- WHERE
+                    --     m.anio_lectivo_matricula = ?
+                    SELECT 
+                        l.old_number_list AS numero_lista,
+                        m.numero_matricula,
+                        TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                        TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                        CASE
+                            WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+                        e.apellido_paterno_estudiante, 
+                        e.apellido_materno_estudiante,
+                        CASE 
+                            WHEN e.nombre_social_estudiante IS NULL THEN 
+                                e.nombres_estudiante 
+                            ELSE 
+                                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+                        (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                    FROM 
+                        libromatricula.student_withdrawal_from_list_log AS l
+                        INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
+                        INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                    WHERE
+                        m.anio_lectivo_matricula = ?
+                        AND l.id_old_course = (
+                            SELECT id_curso
+                            FROM libromatricula.registro_curso
+                            WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
+                        )
+                ) AS combined_data
                 ORDER BY
-                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_paterno_estudiante) END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_materno_estudiante) END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.nombres_estudiante) END
-                ) AS numero_correlativo, m.numero_matricula,
-                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
-                e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
-                (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
-                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
-                FROM libromatricula.registro_matricula AS m
-                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
-                WHERE anio_lectivo_matricula = ?
-                AND id_estado_matricula <> 4
-                AND id_curso = (SELECT id_curso	
-                    FROM libromatricula.registro_curso
-                    WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?)
-                ORDER BY
-                    numero_correlativo;"
+                    numero_lista"
             );
 
             try {
                 // se ejecuta la consulta
                 $statementReportCourseLetter->execute([
-                    intval($periodo),       // anio_lectivo de inner join
-                    intval($periodo),       // anio_lectivo la información del periodo
-                    intval($grado),         // grado para seleccion del id curso
-                    $letra,                 // letra para seleccion del id curso
-                    intval($periodo),       // anio_lectivo para selección del id curso
+                    intval($periodo),       // para p.anio_lectivo
+                    intval($periodo),       // para m.anio_lectivo_matricula
+                    intval($grado),         // para c.grado_curso
+                    $letra,                 // para c.letra_curso
+                    intval($periodo),       // para c.periodo_escolar
+
+                    intval($periodo),       // para m.anio_lectivo_matricula
+                    intval($grado),         // para c.grado_curso
+                    $letra,                 // para c.letra_curso
+                    intval($periodo),       // para c.periodo_escolar
                 ]);
 
                 // confirmar transacción
@@ -631,91 +721,65 @@
 
                 // se obtiene un objeto con los datos de la consulta
                 $reportCourseLetter = $statementReportCourseLetter->fetchAll(PDO::FETCH_OBJ);
-                // Flight::json($reportCourseLetter);
 
-                // creación del objeto excel
-                $file = $this->createExcelObject("Nómina ". $course. " ". $periodo);
+                // ======================================== >>
+                // cargar plantilla
+                $file = IOFactory::load("./document/nomina_curso.xlsx");
 
-                // se comienza a trabajar con la seleccion de hojas y celdas
-                $file->setActiveSheetIndex(0);
+                // obtener la hoja de calculo activa
                 $sheetActive = $file->getActiveSheet();
-                $sheetActive->setTitle($course);
-                $sheetActive->setShowGridLines(false);                
-                
-                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(22);
-                $sheetActive->setAutoFilter('A3:I3');   
-                $sheetActive->getStyle('A3:I3')->applyFromArray($this->styleTitle);
 
+                // asignación del curso
+                $sheetActive->setCellValue('J6', $course);
 
-                // titulo de la hoja de excel
-                $sheetActive->setCellValue('A1', 'CURSO '. $course);
-
-                // ancho de las celdas
-                $sheetActive->getColumnDimension('A')->setWidth(7);
-                $sheetActive->getColumnDimension('B')->setWidth(10);
-                $sheetActive->getColumnDimension('C')->setWidth(12);
-                $sheetActive->getColumnDimension('D')->setWidth(12);
-                $sheetActive->getColumnDimension('E')->setWidth(8);
-                $sheetActive->getColumnDimension('F')->setWidth(20);
-                $sheetActive->getColumnDimension('G')->setWidth(20);
-                $sheetActive->getColumnDimension('H')->setWidth(26);
-                $sheetActive->getColumnDimension('I')->setWidth(16);
-
-                // alineación del contenido de las celdas
-                $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal("center");
-                $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
-                $sheetActive->getStyle('A3:E3')->getAlignment()->setHorizontal("center");
-                $sheetActive->getStyle('A3:I3')->getAlignment()->setVertical("center");
-                $sheetActive->getStyle('A3:I3')->getAlignment()->setWrapText(true);
-                
-                // título de las columnas
-                $sheetActive->setCellValue('A3', 'Nº Lista');
-                $sheetActive->setCellValue('B3', 'Nº Matrícula');
-                $sheetActive->setCellValue('C3', 'Ingreso');
-                $sheetActive->setCellValue('D3', 'Retiro');
-                $sheetActive->setCellValue('E3', 'Sexo');
-                $sheetActive->setCellValue('F3', 'Apellido paterno');
-                $sheetActive->setCellValue('G3', 'Apellido materno');
-                $sheetActive->setCellValue('H3', 'Nombres');
-                $sheetActive->setCellValue('I3', 'Rut');
-
-                // estilo de los bordes
-                $sheetActive->getStyle('A3:I3')->applyFromArray($this->borderCompleteStyle);
+                // contador para cantidad de estudiantes por sexo
+                $countMale = 0;
+                $countFemale = 0;
+                $countTotal = 0;
 
                 // inicio de la fila
-                $fila = 4;
+                $fila = 11;
 
-                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
                 foreach ($reportCourseLetter as $courseLetter) {
-                    $sheetActive->setCellValue('A'.$fila, $courseLetter->numero_correlativo);
-                    $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_matricula);
-                    $sheetActive->setCellValue('C'.$fila, $courseLetter->fecha_alta_matricula);
-                    $sheetActive->setCellValue('D'.$fila, $courseLetter->fecha_baja_matricula);
-                    $sheetActive->setCellValue('E'.$fila, $courseLetter->sexo_estudiante);
-                    $sheetActive->setCellValue('F'.$fila, $courseLetter->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('G'.$fila, $courseLetter->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $courseLetter->nombres_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $courseLetter->rut_estudiante);
+                    $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_lista);
+                    $sheetActive->setCellValue('C'.$fila, $courseLetter->numero_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $courseLetter->fecha_alta_matricula);
+                    $sheetActive->setCellValue('E'.$fila, $courseLetter->fecha_baja_matricula);
+                    $sheetActive->setCellValue('F'.$fila, $courseLetter->sexo_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $courseLetter->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $courseLetter->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $courseLetter->nombres_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $courseLetter->rut_estudiante);
 
-                //     // // aplicar estilo color rojo para retirados
-                //     // if ($course->estado_estudiante === 'Retirado (a)') {
-                //     //     $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleRetired);
-                //     // }
+                    // aplicar estilo color rojo para retirados
+                    if ($courseLetter->fecha_baja_matricula) {
+                        $sheetActive->getStyle('B'.$fila.':J'.$fila)->applyFromArray($this->styleWithdrawal);
+                    }
 
-                //     // // aplicar estilo color naranjo para suspendidos
-                //     // if ($course->estado_estudiante === 'Suspendido (a)') {
-                //     //     $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleOrange);
-                //     // }
+                    // contador de cantidad de estudiantes por sexo y total
+                    if ($courseLetter->sexo_estudiante === 1 && !$courseLetter->fecha_baja_matricula) $countMale++;
+                    if ($courseLetter->sexo_estudiante === 2 && !$courseLetter->fecha_baja_matricula) $countFemale++;
+                    if (!$courseLetter->fecha_baja_matricula) $countTotal++;
                     
                     $fila++;
                 }
 
-                // descarga del archivo excel ========================>
-                $this->downloadExcelFile($file, "Nómina ". $course. "_". $periodo, $periodo);
+                // asignar cantidades al Excel
+                $sheetActive->setCellValue('G57', $countMale);
+                $sheetActive->setCellValue('G58', $countFemale);
+                $sheetActive->setCellValue('G59', $countTotal);
 
 
+                // Configuración del encabezado HTTP para la descarga del archivo
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment;filename="Nómina_2024.xlsx"');
+                header('Cache-Control: max-age=0');
 
+                // Generar el archivo
+                $writer = new Xlsx($file);
+
+                // Descarga del archivo Excel
+                $writer->save('php://output');
 
             } catch (Exception $error) {
                 // revertir transaccion en caso de error

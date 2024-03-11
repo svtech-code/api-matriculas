@@ -39,12 +39,12 @@
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY
                     CASE WHEN m.id_curso IS NULL THEN 0 ELSE 1 END,
-                    CASE WHEN NOT p.autocorrelativo_listas THEN c.grado_curso ELSE NULL END,
-                    CASE WHEN NOT p.autocorrelativo_listas THEN c.letra_curso ELSE NULL END,
-                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_paterno_estudiante) ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_materno_estudiante) ELSE NULL END,
-                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.nombres_estudiante) ELSE NULL END;"
+                    CASE WHEN NOT p.autocorrelativo_listas THEN c.grado_curso END,
+                    CASE WHEN NOT p.autocorrelativo_listas THEN c.letra_curso END,
+                    CASE WHEN NOT p.autocorrelativo_listas THEN m.numero_lista_curso END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_paterno_estudiante) END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.apellido_materno_estudiante) END,
+                    CASE WHEN p.autocorrelativo_listas THEN unaccent(e.nombres_estudiante) END;"
             );
 
             try {

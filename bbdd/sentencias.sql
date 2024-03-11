@@ -300,18 +300,18 @@
 -- 		-- registro por cambio de curso
 -- 		IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
 -- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
--- 				(id_registro_matricula, id_old_course, old_number_list, witdrawal_date, id_responsible_user)
+-- 				(id_registro_matricula, id_old_course, old_number_list, discharge_date, withdrawal_date, id_responsible_user)
 -- 			VALUES
--- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso,
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
 -- 				 NEW.fecha_alta_matricula, NEW.id_usuario_responsable);
 -- 		END IF;
 
 -- 		-- registro por retiro de matrícula
--- 		IF NEW.fecha_baja_matricula IS NOT NULL and NEW.id_estado_matricula = 4 THEN
+-- 		IF NEW.fecha_baja_matricula IS NOT NULL AND OLD.id_curso IS NOT NULL AND NEW.id_estado_matricula = 4 THEN
 -- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
--- 				(id_registro_matricula, id_old_course, old_number_list, witdrawal_date, id_responsible_user)
+-- 				(id_registro_matricula, id_old_course, old_number_list, discharge_date, withdrawal_date, id_responsible_user)
 -- 			VALUES
--- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso,
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
 -- 				 NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
 -- 		END IF;
 		
@@ -402,5 +402,7 @@
 -- AFTER UPDATE ON libromatricula.periodo_matricula
 -- FOR EACH ROW
 -- EXECUTE FUNCTION libromatricula.maximum_list_number_function();
+
+-- --EXECUTE PROCEDURE libromatricula.maximum_list_number_function(); -> para base de datos del establecimiento
 -- ====================================================================>>
 
