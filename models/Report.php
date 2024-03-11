@@ -728,6 +728,7 @@
 
                 // obtener la hoja de calculo activa
                 $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle("Nómina ". $course);
 
                 // asignación del curso
                 $sheetActive->setCellValue('J6', $course);
@@ -768,6 +769,9 @@
                 $sheetActive->setCellValue('G57', $countMale);
                 $sheetActive->setCellValue('G58', $countFemale);
                 $sheetActive->setCellValue('G59', $countTotal);
+
+                // fecha de descarga
+                $sheetActive->setCellValue('J60', date("d-m-Y H:i:d"));
 
 
                 // Configuración del encabezado HTTP para la descarga del archivo
