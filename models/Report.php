@@ -41,8 +41,13 @@ use DateTimeZone;
         private $styleWithdrawal = [
             'font' => [
                 'strikethrough' => true,
-                'bold' => true,
             ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => [
+                    'argb' => 'DDDDDD', // Código de color para gris claro
+                ],
+            ]
         ];
 
         // revisar
@@ -598,6 +603,88 @@ use DateTimeZone;
             // ========================>
 
             // sentencia SQL
+            // $statementReportCourseLetter = $this->preConsult(
+            //     "SELECT 
+            //         numero_lista,
+            //         numero_matricula,
+            //         fecha_alta_matricula,
+            //         fecha_baja_matricula,
+            //         sexo_estudiante,
+            //         apellido_paterno_estudiante,
+            //         apellido_materno_estudiante,
+            //         nombres_estudiante,
+            //         rut_estudiante
+            //     FROM (
+            //         SELECT			
+            //             CASE
+            //                 WHEN p.autocorrelativo_listas THEN
+            //                     ROW_NUMBER() OVER(
+            //                         ORDER BY
+            //                             unaccent(e.apellido_paterno_estudiante),
+            //                             unaccent(e.apellido_materno_estudiante),
+            //                             unaccent(e.nombres_estudiante)
+            //                     )
+            //                 ELSE
+            //                     m.numero_lista_curso
+            //             END AS numero_lista,
+            //             m.numero_matricula,
+            //             TO_CHAR(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+            //             TO_CHAR(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+            //             CASE
+            //                 WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+            //             e.apellido_paterno_estudiante, 
+            //             e.apellido_materno_estudiante,
+            //             CASE 
+            //                 WHEN e.nombre_social_estudiante IS NULL THEN 
+            //                     e.nombres_estudiante 
+            //                 ELSE 
+            //                     '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+            //             (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+            //         FROM 
+            //             libromatricula.registro_matricula AS m
+            //             INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+            //             INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
+            //             INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+            //         WHERE
+            //             m.anio_lectivo_matricula = ?
+            //             AND m.id_estado_matricula <> 4
+            //             AND c.grado_curso = ?
+            //             AND c.letra_curso = ?
+            //             AND c.periodo_escolar = ?
+                    
+            //         UNION ALL
+
+            //         SELECT 
+            //             l.old_number_list AS numero_lista,
+            //             m.numero_matricula,
+            //             TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
+            //             TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+            //             CASE
+            //                 WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+            //             e.apellido_paterno_estudiante, 
+            //             e.apellido_materno_estudiante,
+            //             CASE 
+            //                 WHEN e.nombre_social_estudiante IS NULL THEN 
+            //                     e.nombres_estudiante 
+            //                 ELSE 
+            //                     '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+            //             (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+            //         FROM 
+            //             libromatricula.student_withdrawal_from_list_log AS l
+            //             INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
+            //             INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+            //         WHERE
+            //             m.anio_lectivo_matricula = ?
+            //             AND l.id_old_course = (
+            //                 SELECT id_curso
+            //                 FROM libromatricula.registro_curso
+            //                 WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
+            //             )
+            //     ) AS combined_data
+            //     ORDER BY
+            //         numero_lista"
+            // );
+
             $statementReportCourseLetter = $this->preConsult(
                 "SELECT 
                     numero_lista,
@@ -608,7 +695,10 @@ use DateTimeZone;
                     apellido_paterno_estudiante,
                     apellido_materno_estudiante,
                     nombres_estudiante,
-                    rut_estudiante
+                    rut_estudiante,
+                    dj.nombres_funcionario || ' ' || dj.apellido_paterno_funcionario || ' ' || dj.apellido_materno_funcionario AS docente_jefe,
+                    ig.nombres_funcionario || ' ' || ig.apellido_paterno_funcionario || ' ' || ig.apellido_materno_funcionario AS inspector_general,
+                    p.nombres_funcionario || ' ' || p.apellido_paterno_funcionario || ' ' || p.apellido_materno_funcionario AS paradocente
                 FROM (
                     SELECT			
                         CASE
@@ -635,6 +725,7 @@ use DateTimeZone;
                             ELSE 
                                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
                         (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                    
                     FROM 
                         libromatricula.registro_matricula AS m
                         INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
@@ -646,31 +737,9 @@ use DateTimeZone;
                         AND c.grado_curso = ?
                         AND c.letra_curso = ?
                         AND c.periodo_escolar = ?
-                    
+
                     UNION ALL
-                    
-                    -- SELECT 
-                    --     l.old_number_list AS numero_lista,
-                    --     m.numero_matricula,
-                    --     TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                    --     TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
-                    --     CASE
-                    --         WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
-                    --     e.apellido_paterno_estudiante, 
-                    --     e.apellido_materno_estudiante,
-                    --     CASE 
-                    --         WHEN e.nombre_social_estudiante IS NULL THEN 
-                    --             e.nombres_estudiante 
-                    --         ELSE 
-                    --             '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
-                    --     (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
-                    -- FROM 
-                    --     libromatricula.student_withdrawal_from_list_log AS l
-                    --     INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
-                    --     INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                    --     INNER JOIN libromatricula.registro_curso AS c ON c.grado_curso = ? AND c.letra_curso = ? AND c.periodo_escolar = ?
-                    -- WHERE
-                    --     m.anio_lectivo_matricula = ?
+
                     SELECT 
                         l.old_number_list AS numero_lista,
                         m.numero_matricula,
@@ -698,6 +767,27 @@ use DateTimeZone;
                             WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
                         )
                 ) AS combined_data
+                    INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = (
+                        SELECT id_curso FROM libromatricula.registro_curso WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
+                    )
+                    LEFT JOIN libromatricula.registro_funcionario AS dj ON dj.id_funcionario = c.id_docente_jefe
+                    LEFT JOIN libromatricula.registro_funcionario AS ig ON ig.id_funcionario = c.id_inspectoria_general
+                    LEFT JOIN libromatricula.registro_funcionario AS p ON p.id_funcionario = c.id_paradocente
+                    
+                GROUP BY 
+                    numero_lista,
+                    numero_matricula,
+                    fecha_alta_matricula,
+                    fecha_baja_matricula,
+                    sexo_estudiante,
+                    apellido_paterno_estudiante,
+                    apellido_materno_estudiante,
+                    nombres_estudiante,
+                    rut_estudiante,
+                    docente_jefe,
+                    inspector_general,
+                    paradocente
+                    
                 ORDER BY
                     numero_lista"
             );
@@ -715,6 +805,10 @@ use DateTimeZone;
                     intval($grado),         // para c.grado_curso
                     $letra,                 // para c.letra_curso
                     intval($periodo),       // para c.periodo_escolar
+
+                    intval($grado),         // para grado_curso
+                    $letra,                 // para letra_curso
+                    intval($periodo),       // para periodo_escolar
                 ]);
 
                 // confirmar transacción
@@ -724,7 +818,6 @@ use DateTimeZone;
                 // se obtiene un objeto con los datos de la consulta
                 $reportCourseLetter = $statementReportCourseLetter->fetchAll(PDO::FETCH_OBJ);
 
-                // ======================================== >>
                 // cargar plantilla
                 $file = IOFactory::load("./document/nomina_curso.xlsx");
 
@@ -733,7 +826,12 @@ use DateTimeZone;
                 $sheetActive->setTitle("Nómina ". $course);
 
                 // asignación del curso
-                $sheetActive->setCellValue('J6', $course);
+                $sheetActive->setCellValue('I6', $course);
+
+                // encargados del curso
+                $docenteJefe = "";
+                $inspectorGeneral = "";
+                $paradocente = "";
 
                 // contador para cantidad de estudiantes por sexo
                 $countMale = 0;
@@ -741,23 +839,28 @@ use DateTimeZone;
                 $countTotal = 0;
 
                 // inicio de la fila
-                $fila = 11;
+                $fila = 12;
 
                 foreach ($reportCourseLetter as $courseLetter) {
-                    $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_lista);
-                    $sheetActive->setCellValue('C'.$fila, $courseLetter->numero_matricula);
-                    $sheetActive->setCellValue('D'.$fila, $courseLetter->fecha_alta_matricula);
-                    $sheetActive->setCellValue('E'.$fila, $courseLetter->fecha_baja_matricula);
-                    $sheetActive->setCellValue('F'.$fila, $courseLetter->sexo_estudiante);
-                    $sheetActive->setCellValue('G'.$fila, $courseLetter->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $courseLetter->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $courseLetter->nombres_estudiante);
-                    $sheetActive->setCellValue('J'.$fila, $courseLetter->rut_estudiante);
+                    $sheetActive->setCellValue('A'.$fila, $courseLetter->numero_lista);
+                    $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_matricula);
+                    $sheetActive->setCellValue('C'.$fila, $courseLetter->fecha_alta_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $courseLetter->fecha_baja_matricula);
+                    $sheetActive->setCellValue('E'.$fila, $courseLetter->sexo_estudiante);
+                    $sheetActive->setCellValue('F'.$fila, $courseLetter->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $courseLetter->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $courseLetter->nombres_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $courseLetter->rut_estudiante);
 
                     // aplicar estilo color rojo para retirados
                     if ($courseLetter->fecha_baja_matricula) {
-                        $sheetActive->getStyle('B'.$fila.':J'.$fila)->applyFromArray($this->styleWithdrawal);
+                        $sheetActive->getStyle('A'.$fila.':I'.$fila)->applyFromArray($this->styleWithdrawal);
                     }
+
+                    // obtención responsables del curso
+                    if (empty($docenteJefe)) $docenteJefe = $courseLetter->docente_jefe;
+                    if (empty($inspectorGeneral)) $inspectorGeneral = $courseLetter->inspector_general;
+                    if (empty($paradocente)) $paradocente = $courseLetter->paradocente;
 
                     // contador de cantidad de estudiantes por sexo y total
                     if ($courseLetter->sexo_estudiante === 1 && !$courseLetter->fecha_baja_matricula) $countMale++;
@@ -767,10 +870,15 @@ use DateTimeZone;
                     $fila++;
                 }
 
+                // asignación responsables del curso
+                $sheetActive->setCellValue('F6', $docenteJefe);
+                $sheetActive->setCellValue('F7', $inspectorGeneral);
+                $sheetActive->setCellValue('F8', $paradocente);
+
                 // asignar cantidades al Excel
-                $sheetActive->setCellValue('G57', $countMale);
-                $sheetActive->setCellValue('G58', $countFemale);
-                $sheetActive->setCellValue('G59', $countTotal);
+                $sheetActive->setCellValue('F58', $countMale);
+                $sheetActive->setCellValue('F59', $countFemale);
+                $sheetActive->setCellValue('F60', $countTotal);
 
                 // Establecer la zona horaria de Chile
                 $zonaHorariaChile = new DateTimeZone('America/Santiago');
@@ -779,7 +887,7 @@ use DateTimeZone;
                 $horaActualChile = new DateTime('now', $zonaHorariaChile);
                 
                 // insertar fecha y hora actual en que se genera la nómina
-                $sheetActive->setCellValue('J60', $horaActualChile->format('d-m-Y H:i:s'));
+                $sheetActive->setCellValue('I61', $horaActualChile->format('d-m-Y H:i:s'));
 
                 // Configuración del encabezado HTTP para la descarga del archivo
                 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
