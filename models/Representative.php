@@ -17,7 +17,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1]);
+            $this->validatePrivilege([1, 2]);
 
             // obtención de la data enviada por el cliente
             $representative = Flight::request()->data;
@@ -80,7 +80,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1]);
+            $this->validatePrivilege([1, 2]);
 
             // obtención de la data enviada por el cliente
             $representative = Flight::request()->data;
