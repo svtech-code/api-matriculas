@@ -18,7 +18,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2, 3, 4]);
 
             // sentencia SQL
             $statementCourse = $this->preConsult(
@@ -95,7 +95,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2, 3, 4]);
 
             // sentencia SQL
             $statementListCourse = $this->preConsult(
@@ -145,7 +145,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2, 3, 4]);
 
             // sentencia SQL
             $statementClassStartDate = $this->preConsult(

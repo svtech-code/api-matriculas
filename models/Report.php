@@ -446,14 +446,13 @@ use DateTimeZone;
 
         }
 
-        // método para obtener reporte de estudiantes por curso
-        // preguntar sobre como trabajar el nombre social ?????
+        // método para obtener reporte de estudiantes y cursos
         public function getReportCourses($periodo) {
             // se valida el token del usuario
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2, 4]);
+            $this->validatePrivilege([1, 2, 3, 4]);
 
             // iniciar transaccion
             $this->beginTransaction();
