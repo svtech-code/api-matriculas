@@ -518,7 +518,7 @@
                 // ancho de las celdas
                 $sheetActive->getColumnDimension('A')->setWidth(18);
                 $sheetActive->getColumnDimension('B')->setWidth(14);
-                $sheetActive->getColumnDimension('C')->setWidth(16);
+                $sheetActive->getColumnDimension('C')->setWidth(14);
                 $sheetActive->getColumnDimension('D')->setWidth(18);
                 $sheetActive->getColumnDimension('E')->setWidth(18);
                 $sheetActive->getColumnDimension('F')->setWidth(14);
@@ -551,9 +551,9 @@
 
                 // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
                 foreach ($reportCourses as $course) {
-                    $sheetActive->setCellValue('A'.$fila, $course->numero_matricula);
+                    $sheetActive->setCellValue('A'.$fila, $course->numero_matricula ? $course->numero_matricula: "N/A");
                     $sheetActive->setCellValue('B'.$fila, $course->curso);
-                    $sheetActive->setCellValue('C'.$fila, $course->n_lista);
+                    $sheetActive->setCellValue('C'.$fila, $course->n_lista ? $course->n_lista : "N/A");
                     $sheetActive->setCellValue('D'.$fila, $course->fecha_alta_matricula);
                     $sheetActive->setCellValue('E'.$fila, $course->fecha_baja_matricula);
                     $sheetActive->setCellValue('F'.$fila, $course->sexo_estudiante);
