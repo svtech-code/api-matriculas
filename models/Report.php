@@ -1,8 +1,8 @@
 <?php
     namespace Models;
 
-use DateTime;
-use DateTimeZone;
+    use DateTime;
+    use DateTimeZone;
     use Models\Auth;
     use Exception;
     use Flight;
@@ -11,7 +11,6 @@ use DateTimeZone;
     use PhpOffice\PhpWord\Settings;
     use PhpOffice\PhpSpreadsheet\{Spreadsheet, IOFactory};
     use PhpOffice\PhpSpreadsheet\Style\{Fill, Border};
-    // use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
     use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
     class Report extends Auth {
@@ -460,7 +459,21 @@ use DateTimeZone;
 
             // sentencia SQL
             $statementReportCourses = $this->preConsult(
+                // "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
+                // to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                // to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                // e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                // (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                // '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                // (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
+                // FROM libromatricula.registro_matricula AS m
+                // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                // LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                // INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
+                // WHERE m.anio_lectivo_matricula = ?
+                // ORDER BY m.numero_matricula;"
                 "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
+                m.numero_lista_curso AS n_lista,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
                 to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
                 e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
@@ -472,7 +485,7 @@ use DateTimeZone;
                 LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
                 WHERE m.anio_lectivo_matricula = ?
-                ORDER BY m.numero_matricula;"
+                order by curso, m.numero_lista_curso"
             );
 
             try {
@@ -496,8 +509,8 @@ use DateTimeZone;
                 $sheetActive->setShowGridLines(false);                
                 
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
-                $sheetActive->setAutoFilter('A3:J3');   
-                $sheetActive->getStyle('A3:J3')->applyFromArray($this->styleTitle);
+                $sheetActive->setAutoFilter('A3:K3');   
+                $sheetActive->getStyle('A3:K3')->applyFromArray($this->styleTitle);
 
                 // titulo de la hoja de excel
                 $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
@@ -505,31 +518,33 @@ use DateTimeZone;
                 // ancho de las celdas
                 $sheetActive->getColumnDimension('A')->setWidth(18);
                 $sheetActive->getColumnDimension('B')->setWidth(14);
-                $sheetActive->getColumnDimension('C')->setWidth(18);
+                $sheetActive->getColumnDimension('C')->setWidth(16);
                 $sheetActive->getColumnDimension('D')->setWidth(18);
-                $sheetActive->getColumnDimension('E')->setWidth(14);
-                $sheetActive->getColumnDimension('F')->setWidth(22);
+                $sheetActive->getColumnDimension('E')->setWidth(18);
+                $sheetActive->getColumnDimension('F')->setWidth(14);
                 $sheetActive->getColumnDimension('G')->setWidth(22);
-                $sheetActive->getColumnDimension('H')->setWidth(30);
-                $sheetActive->getColumnDimension('I')->setWidth(22);
+                $sheetActive->getColumnDimension('H')->setWidth(22);
+                $sheetActive->getColumnDimension('I')->setWidth(30);
                 $sheetActive->getColumnDimension('J')->setWidth(22);
+                $sheetActive->getColumnDimension('K')->setWidth(22);
 
                 // alineación del contenido de las celdas
-                $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A:F')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
 
                 // título de las columnas
                 $sheetActive->setCellValue('A3', 'Nº MATRICULA');
                 $sheetActive->setCellValue('B3', 'CURSO');
-                $sheetActive->setCellValue('C3', 'FECHA ALTA');
-                $sheetActive->setCellValue('D3', 'FECHA RETIRO');
-                $sheetActive->setCellValue('E3', 'SEXO');
-                $sheetActive->setCellValue('F3', 'APELLIDO PATERNO');
-                $sheetActive->setCellValue('G3', 'APELLIDO MATERNO');
-                $sheetActive->setCellValue('H3', 'NOMBRES');
-                $sheetActive->setCellValue('I3', 'RUT ESTUDIANTE');
-                $sheetActive->setCellValue('J3', 'ESTADO ESTUDIANTE');
+                $sheetActive->setCellValue('C3', 'N LISTA');
+                $sheetActive->setCellValue('D3', 'FECHA ALTA');
+                $sheetActive->setCellValue('E3', 'FECHA RETIRO');
+                $sheetActive->setCellValue('F3', 'SEXO');
+                $sheetActive->setCellValue('G3', 'APELLIDO PATERNO');
+                $sheetActive->setCellValue('H3', 'APELLIDO MATERNO');
+                $sheetActive->setCellValue('I3', 'NOMBRES');
+                $sheetActive->setCellValue('J3', 'RUT ESTUDIANTE');
+                $sheetActive->setCellValue('K3', 'ESTADO ESTUDIANTE');
 
                 // inicio de la fila
                 $fila = 4;
@@ -538,23 +553,24 @@ use DateTimeZone;
                 foreach ($reportCourses as $course) {
                     $sheetActive->setCellValue('A'.$fila, $course->numero_matricula);
                     $sheetActive->setCellValue('B'.$fila, $course->curso);
-                    $sheetActive->setCellValue('C'.$fila, $course->fecha_alta_matricula);
-                    $sheetActive->setCellValue('D'.$fila, $course->fecha_baja_matricula);
-                    $sheetActive->setCellValue('E'.$fila, $course->sexo_estudiante);
-                    $sheetActive->setCellValue('F'.$fila, $course->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('G'.$fila, $course->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $course->nombres_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $course->rut_estudiante);
-                    $sheetActive->setCellValue('J'.$fila, $course->estado_estudiante);
+                    $sheetActive->setCellValue('C'.$fila, $course->n_lista);
+                    $sheetActive->setCellValue('D'.$fila, $course->fecha_alta_matricula);
+                    $sheetActive->setCellValue('E'.$fila, $course->fecha_baja_matricula);
+                    $sheetActive->setCellValue('F'.$fila, $course->sexo_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $course->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $course->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $course->nombres_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $course->rut_estudiante);
+                    $sheetActive->setCellValue('K'.$fila, $course->estado_estudiante);
 
                     // aplicar estilo color rojo para retirados
                     if ($course->estado_estudiante === 'Retirado (a)') {
-                        $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleRetired);
+                        $sheetActive->getStyle('A'.$fila.':K'.$fila)->applyFromArray($this->styleRetired);
                     }
 
                     // aplicar estilo color naranjo para suspendidos
                     if ($course->estado_estudiante === 'Suspendido (a)') {
-                        $sheetActive->getStyle('A'.$fila.':J'.$fila)->applyFromArray($this->styleOrange);
+                        $sheetActive->getStyle('A'.$fila.':K'.$fila)->applyFromArray($this->styleOrange);
                     }
                     
                     $fila++;
