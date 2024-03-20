@@ -459,19 +459,6 @@
 
             // sentencia SQL
             $statementReportCourses = $this->preConsult(
-                // "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
-                // to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                // to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
-                // e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
-                // (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
-                // '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                // (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
-                // FROM libromatricula.registro_matricula AS m
-                // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-                // LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                // INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
-                // WHERE m.anio_lectivo_matricula = ?
-                // ORDER BY m.numero_matricula;"
                 "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
                 m.numero_lista_curso AS n_lista,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
@@ -1044,6 +1031,26 @@
                 // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
+
+        }
+
+        // método para obtener reporte del cambio de cursos
+        public function getReportChangeCourse($periodo) {
+
+            // query
+            // SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+            // ((CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante 
+            // ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) || ' ' 
+            // || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
+            // (oldc.grado_curso || oldc.letra_curso) as old_course, 
+            // old_list_number, (newc.grado_curso || newc.letra_curso) as new_course, new_list_number, new_assignment_date
+            // FROM libromatricula.change_course_log AS log
+            // INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = log.id_registro_matricula
+            // INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+            // INNER JOIN libromatricula.registro_curso AS oldc ON oldc.id_curso = log.id_old_course
+            // INNER JOIN libromatricula.registro_curso AS newc ON newc.id_curso = log.id_new_course
+            // WHERE m.anio_lectivo_matricula = 2024
+            // ORDER BY new_assignment_date
 
         }
 
