@@ -494,13 +494,15 @@
                 $sheetActive = $file->getActiveSheet();
                 $sheetActive->setTitle("Registro de cursos");
                 $sheetActive->setShowGridLines(false);                
-                
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+                
+                // titulo de la hoja de excel
+                $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
+
+                // filtro para los encabezados
                 $sheetActive->setAutoFilter('A3:K3');   
                 $sheetActive->getStyle('A3:K3')->applyFromArray($this->styleTitle);
 
-                // titulo de la hoja de excel
-                $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
 
                 // ancho de las celdas
                 $sheetActive->getColumnDimension('A')->setWidth(18);
@@ -605,88 +607,6 @@
             // ========================>
 
             // sentencia SQL
-            // $statementReportCourseLetter = $this->preConsult(
-            //     "SELECT 
-            //         numero_lista,
-            //         numero_matricula,
-            //         fecha_alta_matricula,
-            //         fecha_baja_matricula,
-            //         sexo_estudiante,
-            //         apellido_paterno_estudiante,
-            //         apellido_materno_estudiante,
-            //         nombres_estudiante,
-            //         rut_estudiante
-            //     FROM (
-            //         SELECT			
-            //             CASE
-            //                 WHEN p.autocorrelativo_listas THEN
-            //                     ROW_NUMBER() OVER(
-            //                         ORDER BY
-            //                             unaccent(e.apellido_paterno_estudiante),
-            //                             unaccent(e.apellido_materno_estudiante),
-            //                             unaccent(e.nombres_estudiante)
-            //                     )
-            //                 ELSE
-            //                     m.numero_lista_curso
-            //             END AS numero_lista,
-            //             m.numero_matricula,
-            //             TO_CHAR(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-            //             TO_CHAR(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
-            //             CASE
-            //                 WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
-            //             e.apellido_paterno_estudiante, 
-            //             e.apellido_materno_estudiante,
-            //             CASE 
-            //                 WHEN e.nombre_social_estudiante IS NULL THEN 
-            //                     e.nombres_estudiante 
-            //                 ELSE 
-            //                     '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
-            //             (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
-            //         FROM 
-            //             libromatricula.registro_matricula AS m
-            //             INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-            //             INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
-            //             INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-            //         WHERE
-            //             m.anio_lectivo_matricula = ?
-            //             AND m.id_estado_matricula <> 4
-            //             AND c.grado_curso = ?
-            //             AND c.letra_curso = ?
-            //             AND c.periodo_escolar = ?
-                    
-            //         UNION ALL
-
-            //         SELECT 
-            //             l.old_number_list AS numero_lista,
-            //             m.numero_matricula,
-            //             TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
-            //             TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
-            //             CASE
-            //                 WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
-            //             e.apellido_paterno_estudiante, 
-            //             e.apellido_materno_estudiante,
-            //             CASE 
-            //                 WHEN e.nombre_social_estudiante IS NULL THEN 
-            //                     e.nombres_estudiante 
-            //                 ELSE 
-            //                     '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
-            //             (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
-            //         FROM 
-            //             libromatricula.student_withdrawal_from_list_log AS l
-            //             INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
-            //             INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-            //         WHERE
-            //             m.anio_lectivo_matricula = ?
-            //             AND l.id_old_course = (
-            //                 SELECT id_curso
-            //                 FROM libromatricula.registro_curso
-            //                 WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
-            //             )
-            //     ) AS combined_data
-            //     ORDER BY
-            //         numero_lista"
-            // );
-
             $statementReportCourseLetter = $this->preConsult(
                 "SELECT 
                     numero_lista,
@@ -1036,21 +956,124 @@
 
         // método para obtener reporte del cambio de cursos
         public function getReportChangeCourse($periodo) {
+            // se valida el token del usuario
+            $this->validateToken();
 
-            // query
-            // SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
-            // ((CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante 
-            // ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) || ' ' 
-            // || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
-            // (oldc.grado_curso || oldc.letra_curso) as old_course, 
-            // old_list_number, (newc.grado_curso || newc.letra_curso) as new_course, new_list_number, new_assignment_date
-            // FROM libromatricula.change_course_log AS log
-            // INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = log.id_registro_matricula
-            // INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-            // INNER JOIN libromatricula.registro_curso AS oldc ON oldc.id_curso = log.id_old_course
-            // INNER JOIN libromatricula.registro_curso AS newc ON newc.id_curso = log.id_new_course
-            // WHERE m.anio_lectivo_matricula = 2024
-            // ORDER BY new_assignment_date
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementReportChangeCourse = $this->preConsult(
+                " SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                ((CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante 
+                ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) || ' ' 
+                || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
+                (oldc.grado_curso || oldc.letra_curso) as old_course, 
+                old_list_number, (newc.grado_curso || newc.letra_curso) as new_course, new_list_number, new_assignment_date
+                FROM libromatricula.change_course_log AS log
+                INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = log.id_registro_matricula
+                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                INNER JOIN libromatricula.registro_curso AS oldc ON oldc.id_curso = log.id_old_course
+                INNER JOIN libromatricula.registro_curso AS newc ON newc.id_curso = log.id_new_course
+                WHERE m.anio_lectivo_matricula = ?
+                ORDER BY new_assignment_date;"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementReportChangeCourse->execute([intval($periodo)]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // se obtiene un objeto con los datos de la consulta
+                $reportChangeCourse = $statementReportChangeCourse->fetchAll(PDO::FETCH_OBJ);
+
+                // Flight::json($reportChangeCourse);
+                // creación del objeto excel
+                $file = $this->createExcelObject("Registro cambios curso");
+
+                // se comienza a trabajar con la seleccion de hojas y celdas
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle("Registro cambios de curso");
+                $sheetActive->setShowGridLines(false); 
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+                
+                // titulo de la hoja de excel
+                $sheetActive->setCellValue('A1', 'Cambios de curso periodo '. $periodo);
+
+
+                // filtro para los encabezados
+                $sheetActive->setAutoFilter('A3:G3'); 
+                $sheetActive->getStyle('A3:G3')->applyFromArray($this->styleTitle);
+
+                // ancho de las celdas
+                $sheetActive->getColumnDimension('A')->setWidth(20);
+                $sheetActive->getColumnDimension('B')->setWidth(45);
+                $sheetActive->getColumnDimension('C')->setWidth(20);
+                $sheetActive->getColumnDimension('D')->setWidth(20);
+                $sheetActive->getColumnDimension('E')->setWidth(20);
+                $sheetActive->getColumnDimension('F')->setWidth(20);
+                $sheetActive->getColumnDimension('G')->setWidth(24);
+
+                // alineación del contenido de las celdas
+                $sheetActive->getStyle('C:F')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('C3:F3')->getAlignment()->setHorizontal('left');
+                // // $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
+                // // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
+
+                // título de las columnas
+                $sheetActive->setCellValue('A3', 'RUT ESTUDIANTE');
+                $sheetActive->setCellValue('B3', 'NOMBRES ESTUDIANTE');
+                $sheetActive->setCellValue('C3', 'CURSO ANTIGUO');
+                $sheetActive->setCellValue('D3', 'N LISTA ANTIGUO');
+                $sheetActive->setCellValue('E3', 'CURSO NUEVO');
+                $sheetActive->setCellValue('F3', 'N LISTA NUEVO');
+                $sheetActive->setCellValue('G3', 'FECHA DEL CAMBIO');
+
+                // inicio de la fila
+                $fila = 4;
+
+                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
+                foreach ($reportChangeCourse as $change) {
+                    $sheetActive->setCellValue('A'.$fila, $change->rut_estudiante);
+                    $sheetActive->setCellValue('B'.$fila, $change->nombres_estudiante);
+                    $sheetActive->setCellValue('C'.$fila, $change->old_course);
+                    $sheetActive->setCellValue('D'.$fila, $change->old_list_number);
+                    $sheetActive->setCellValue('E'.$fila, $change->new_course);
+                    $sheetActive->setCellValue('F'.$fila, $change->new_list_number);
+                    $sheetActive->setCellValue('G'.$fila, $change->new_assignment_date);
+                    
+                    $fila++;
+                }
+
+                // descarga del archivo excel ========================>
+                $this->downloadExcelFile($file, "ReporteCambioCursos_", $periodo);
+
+            } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementReportChangeCourse);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            };
+           
 
         }
 
