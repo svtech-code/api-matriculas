@@ -608,6 +608,110 @@
 
             // sentencia SQL
             $statementReportCourseLetter = $this->preConsult(
+                // "SELECT 
+                //     numero_lista,
+                //     numero_matricula,
+                //     fecha_alta_matricula,
+                //     fecha_baja_matricula,
+                //     sexo_estudiante,
+                //     apellido_paterno_estudiante,
+                //     apellido_materno_estudiante,
+                //     nombres_estudiante,
+                //     rut_estudiante,
+                //     dj.nombres_funcionario || ' ' || dj.apellido_paterno_funcionario || ' ' || dj.apellido_materno_funcionario AS docente_jefe,
+                //     ig.nombres_funcionario || ' ' || ig.apellido_paterno_funcionario || ' ' || ig.apellido_materno_funcionario AS inspector_general,
+                //     p.nombres_funcionario || ' ' || p.apellido_paterno_funcionario || ' ' || p.apellido_materno_funcionario AS paradocente
+                // FROM (
+                //     SELECT			
+                //         CASE
+                //             WHEN p.autocorrelativo_listas THEN
+                //                 ROW_NUMBER() OVER(
+                //                     ORDER BY
+                //                         unaccent(e.apellido_paterno_estudiante),
+                //                         unaccent(e.apellido_materno_estudiante),
+                //                         unaccent(e.nombres_estudiante)
+                //                 )
+                //             ELSE
+                //                 m.numero_lista_curso
+                //         END AS numero_lista,
+                //         m.numero_matricula,
+                //         TO_CHAR(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                //         TO_CHAR(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                //         CASE
+                //             WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+                //         e.apellido_paterno_estudiante, 
+                //         e.apellido_materno_estudiante,
+                //         CASE 
+                //             WHEN e.nombre_social_estudiante IS NULL THEN 
+                //                 e.nombres_estudiante 
+                //             ELSE 
+                //                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+                //         (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                    
+                //     FROM 
+                //         libromatricula.registro_matricula AS m
+                //         INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                //         INNER JOIN libromatricula.periodo_matricula AS p ON p.anio_lectivo = ?
+                //         INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                //     WHERE
+                //         m.anio_lectivo_matricula = ?
+                //         AND m.id_estado_matricula <> 4
+                //         AND c.grado_curso = ?
+                //         AND c.letra_curso = ?
+                //         AND c.periodo_escolar = ?
+
+                //     UNION ALL
+
+                //     SELECT 
+                //         l.old_number_list AS numero_lista,
+                //         m.numero_matricula,
+                //         TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                //         TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                //         CASE
+                //             WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
+                //         e.apellido_paterno_estudiante, 
+                //         e.apellido_materno_estudiante,
+                //         CASE 
+                //             WHEN e.nombre_social_estudiante IS NULL THEN 
+                //                 e.nombres_estudiante 
+                //             ELSE 
+                //                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END AS nombres_estudiante,
+                //         (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante
+                //     FROM 
+                //         libromatricula.student_withdrawal_from_list_log AS l
+                //         INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
+                //         INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                //     WHERE
+                //         m.anio_lectivo_matricula = ?
+                //         AND l.id_old_course = (
+                //             SELECT id_curso
+                //             FROM libromatricula.registro_curso
+                //             WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
+                //         )
+                // ) AS combined_data
+                //     INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = (
+                //         SELECT id_curso FROM libromatricula.registro_curso WHERE grado_curso = ? AND letra_curso = ? AND periodo_escolar = ?
+                //     )
+                //     LEFT JOIN libromatricula.registro_funcionario AS dj ON dj.id_funcionario = c.id_docente_jefe
+                //     LEFT JOIN libromatricula.registro_funcionario AS ig ON ig.id_funcionario = c.id_inspectoria_general
+                //     LEFT JOIN libromatricula.registro_funcionario AS p ON p.id_funcionario = c.id_paradocente
+                    
+                // GROUP BY 
+                //     numero_lista,
+                //     numero_matricula,
+                //     fecha_alta_matricula,
+                //     fecha_baja_matricula,
+                //     sexo_estudiante,
+                //     apellido_paterno_estudiante,
+                //     apellido_materno_estudiante,
+                //     nombres_estudiante,
+                //     rut_estudiante,
+                //     docente_jefe,
+                //     inspector_general,
+                //     paradocente
+                    
+                // ORDER BY
+                //     numero_lista;"
                 "SELECT 
                     numero_lista,
                     numero_matricula,
@@ -622,6 +726,7 @@
                     ig.nombres_funcionario || ' ' || ig.apellido_paterno_funcionario || ' ' || ig.apellido_materno_funcionario AS inspector_general,
                     p.nombres_funcionario || ' ' || p.apellido_paterno_funcionario || ' ' || p.apellido_materno_funcionario AS paradocente
                 FROM (
+                    -- consulta de registros y retiros de matricula
                     SELECT			
                         CASE
                             WHEN p.autocorrelativo_listas THEN
@@ -636,7 +741,7 @@
                         END AS numero_lista,
                         m.numero_matricula,
                         TO_CHAR(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                        TO_CHAR(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                        TO_CHAR(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
                         CASE
                             WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
                         e.apellido_paterno_estudiante, 
@@ -661,12 +766,20 @@
                         AND c.periodo_escolar = ?
 
                     UNION ALL
-
+                    
+                    -- consulta hacia log de retiros y cambios
                     SELECT 
                         l.old_number_list AS numero_lista,
                         m.numero_matricula,
                         TO_CHAR(l.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                        TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                        
+
+                    
+                        (TO_CHAR(l.withdrawal_date, 'DD/MM/YYYY') || ' (' || 
+                        CASE 
+                            WHEN m.id_estado_matricula = 4 THEN 'R' 
+                            ELSE (c.grado_curso || c.letra_curso) --seguir aqui 
+                        END || ')') AS fecha_baja_matricula,
                         CASE
                             WHEN e.sexo_estudiante = 'M' THEN 1 ELSE 2 END AS sexo_estudiante,
                         e.apellido_paterno_estudiante, 
@@ -681,6 +794,7 @@
                         libromatricula.student_withdrawal_from_list_log AS l
                         INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = l.id_registro_matricula
                         INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                        INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                     WHERE
                         m.anio_lectivo_matricula = ?
                         AND l.id_old_course = (

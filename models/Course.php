@@ -230,7 +230,7 @@
                 // se ejecuta la consulta
                 $statementUpdateLetterCourse->execute([
                     $course->fechaAlta,     // para fecha_alta_matricula
-                    $course->fechaBaja,     // para fecha_baja_matricula
+                    ($course->fechaBaja ? $course->fechaBaja : null),     // para fecha_baja_matricula
                     $usserId,               // para id_usuario_responsable
                     $course->periodo,       // para p.anio_lectivo
                     $course->idMatricula,   // para m.id_registro_matricula
