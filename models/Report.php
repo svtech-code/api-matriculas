@@ -711,7 +711,7 @@
                     paradocente
                     
                 ORDER BY
-                    numero_lista"
+                    numero_lista;"
             );
 
             try {

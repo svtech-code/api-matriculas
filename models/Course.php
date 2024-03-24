@@ -212,6 +212,7 @@
                                         ELSE c.numero_lista_curso + 1
                                     END,
                 fecha_alta_matricula = ?,
+                fecha_baja_matricula = ?,
                 fecha_modificacion_matricula = CURRENT_TIMESTAMP,
                 id_usuario_responsable = ?
                 FROM libromatricula.registro_curso AS c
@@ -229,6 +230,7 @@
                 // se ejecuta la consulta
                 $statementUpdateLetterCourse->execute([
                     $course->fechaAlta,     // para fecha_alta_matricula
+                    $course->fechaBaja,     // para fecha_baja_matricula
                     $usserId,               // para id_usuario_responsable
                     $course->periodo,       // para p.anio_lectivo
                     $course->idMatricula,   // para m.id_registro_matricula

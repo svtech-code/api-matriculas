@@ -109,6 +109,81 @@
 
 
 -- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR CAMBIOS DE CURSO ============================> SIN USO
+
+-- CREATE OR REPLACE FUNCTION libromatricula.course_change_log_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+	-- IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+	-- 	INSERT INTO libromatricula.course_change_log 
+	-- 		(id_registro_matricula, id_old_course, old_list_number, old_assignment_date,
+	-- 		 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
+	-- 	VALUES 
+	-- 		(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+	-- 		 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
+    --       NEW.id_usuario_responsable);
+	-- END IF;
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR CAMBIOS DE CURSO ============================> SIN USO
+
+-- CREATE OR REPLACE TRIGGER course_change_log_trigger
+-- AFTER UPDATE ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.course_change_log_function();
+-- ====================================================================>>
+
+
+
+
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR BAJAS DE MATRICULA ============================> SIN USO
+
+-- CREATE OR REPLACE FUNCTION libromatricula.registration_withdrawal_log_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+	-- IF (NEW.fecha_baja_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
+	-- 	INSERT INTO libromatricula.registration_withdrawal_log
+	-- 		(id_registro_matricula, withdrawal_date, id_responsible_user)
+	-- 	VALUES
+	-- 		(OLD.id_registro_matricula, NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
+	-- END IF;
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR BAJAS DE MATRICULA ============================> SIN USO
+
+-- CREATE OR REPLACE TRIGGER registration_withdrawal_log_trigger
+-- AFTER UPDATE ON libromatricula.registro_matricula
+-- FOR EACH ROW
+-- EXECUTE FUNCTION libromatricula.registration_withdrawal_log_function();
+-- ====================================================================>>
+
+
+
+
+
+
+
+-- 	-- =============================================================>
+-- FUNCIONES ACTUALMENTE EN USOS 
+-- 	-- =============================================================>
+
+
+-- **************************** FUNCTION ****************************
 -- ---------------------------> FUNCION PARA VERIFICAR ESTUDIANTE EXISTENTE POR PERIODO Y GENERACION DE NUMERO DE MATRICUAL
 
 -- CREATE OR REPLACE FUNCTION libromatricula.set_new_matricula()
@@ -216,72 +291,6 @@
 -- EXECUTE FUNCTION libromatricula.update_course_assignment_date();
 -- ====================================================================>>
 
-
-
-
--- **************************** FUNCTION ****************************
--- ---------------------------> FUNCION PARA REGISTRAR CAMBIOS DE CURSO
-
--- CREATE OR REPLACE FUNCTION libromatricula.course_change_log_function()
--- RETURNS TRIGGER AS $$
-
--- BEGIN
-	-- IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
-	-- 	INSERT INTO libromatricula.course_change_log 
-	-- 		(id_registro_matricula, id_old_course, old_list_number, old_assignment_date,
-	-- 		 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user)
-	-- 	VALUES 
-	-- 		(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
-	-- 		 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
-    --       NEW.id_usuario_responsable);
-	-- END IF;
--- 	RETURN NEW;
--- END;
-
--- $$ LANGUAGE plpgsql;
--- ====================================================================>>
-
-
--- **************************** TRIGGER ****************************
--- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR CAMBIOS DE CURSO
-
--- CREATE OR REPLACE TRIGGER course_change_log_trigger
--- AFTER UPDATE ON libromatricula.registro_matricula
--- FOR EACH ROW
--- EXECUTE FUNCTION libromatricula.course_change_log_function();
--- ====================================================================>>
-
-
-
-
--- **************************** FUNCTION ****************************
--- ---------------------------> FUNCION PARA REGISTRAR BAJAS DE MATRICULA
-
--- CREATE OR REPLACE FUNCTION libromatricula.registration_withdrawal_log_function()
--- RETURNS TRIGGER AS $$
-
--- BEGIN
-	-- IF (NEW.fecha_baja_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
-	-- 	INSERT INTO libromatricula.registration_withdrawal_log
-	-- 		(id_registro_matricula, withdrawal_date, id_responsible_user)
-	-- 	VALUES
-	-- 		(OLD.id_registro_matricula, NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
-	-- END IF;
--- 	RETURN NEW;
--- END;
-
--- $$ LANGUAGE plpgsql;
--- ====================================================================>>
-
-
--- **************************** TRIGGER ****************************
--- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR BAJAS DE MATRICULA
-
--- CREATE OR REPLACE TRIGGER registration_withdrawal_log_trigger
--- AFTER UPDATE ON libromatricula.registro_matricula
--- FOR EACH ROW
--- EXECUTE FUNCTION libromatricula.registration_withdrawal_log_function();
--- ====================================================================>>
 
 
 
@@ -406,3 +415,68 @@
 -- --EXECUTE PROCEDURE libromatricula.maximum_list_number_function(); -> para base de datos del establecimiento
 -- ====================================================================>>
 
+
+
+
+
+-- respaldo de función macro para log de retiros y cambios de curso, actualizar ********************************
+
+-- CREATE OR REPLACE FUNCTION libromatricula.change_course_and_withdrawal_registration_function()
+-- RETURNS TRIGGER AS $$
+
+-- BEGIN
+-- 	-- registro de log, para uso en nómina de estudiantes
+-- 	-- verificar si el autocorrelativo esta activado (significa el estado de las listas oficiales)
+-- 	IF NOT (SELECT autocorrelativo_listas FROM libromatricula.periodo_matricula WHERE anio_lectivo = OLD.anio_lectivo_matricula) THEN
+
+-- 		-- registro por cambio de curso
+-- 		IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+-- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
+-- 				(id_registro_matricula, id_old_course, old_number_list, discharge_date, withdrawal_date, id_responsible_user)
+-- 			VALUES
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+-- 				 NEW.fecha_baja_matricula, NEW.id_usuario_responsable);
+-- 		END IF;
+
+-- 		-- registro por retiro de matrícula
+-- 		IF NEW.fecha_retiro_matricula IS NOT NULL AND OLD.id_curso IS NOT NULL AND NEW.id_estado_matricula = 4 THEN
+-- 			INSERT INTO libromatricula.student_withdrawal_from_list_log
+-- 				(id_registro_matricula, id_old_course, old_number_list, discharge_date, withdrawal_date, id_responsible_user)
+-- 			VALUES
+-- 				(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, OLD.fecha_alta_matricula,
+-- 				 NEW.fecha_retiro_matricula, NEW.id_usuario_responsable);
+-- 		END IF;
+		
+-- 		-- actualizar numero lista curso máximo del curso al que se asigna un estudiante
+-- 		IF NEW.id_curso <> OLD.id_curso OR OLD.id_curso IS NULL THEN
+-- 			UPDATE libromatricula.registro_curso
+-- 			SET numero_lista_curso = NEW.numero_lista_curso
+-- 			WHERE id_curso = NEW.id_curso AND periodo_escolar = OLD.anio_lectivo_matricula;
+-- 		END IF;
+		
+-- 		-- asignar nuevo numero de lista a matricula
+-- 	END IF;
+	
+-- 	-- registro log para los cambios de curso
+-- 	IF OLD.id_curso IS NOT NULL AND NEW.id_curso <> OLD.id_curso THEN
+-- 		INSERT INTO libromatricula.change_course_log 
+-- 			(id_registro_matricula, id_old_course, old_list_number, withdrawal_date,
+-- 			 id_new_course, new_list_number, new_assignment_date, period, id_responsible_user, old_assignment_date)
+-- 		VALUES 
+-- 			(OLD.id_registro_matricula, OLD.id_curso, OLD.numero_lista_curso, new.fecha_baja_matricula,
+-- 			 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
+--           NEW.id_usuario_responsable, OLD.fecha_alta_matricula);
+-- 	END IF;
+	
+-- 	-- registro log para los retiros de matricula
+-- 	IF (NEW.fecha_retiro_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
+-- 		INSERT INTO libromatricula.registration_withdrawal_log
+-- 			(id_registro_matricula, withdrawal_date, id_responsible_user)
+-- 		VALUES
+-- 			(OLD.id_registro_matricula, NEW.fecha_retiro_matricula, NEW.id_usuario_responsable);
+-- 	END IF;
+	
+-- 	RETURN NEW;
+-- END;
+
+-- $$ LANGUAGE plpgsql;
