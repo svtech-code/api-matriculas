@@ -435,8 +435,8 @@
             // sentencia SQL
             $statementWithdrawalMatricula = $this->preConsult(
                 "UPDATE libromatricula.registro_matricula
-                SET id_estado_matricula = 4, fecha_retiro_matricula = ?, fecha_baja_matricula = ?
-                id_usuario_responsable = 1, fecha_modificacion_matricula = CURRENT_TIMESTAMP
+                SET id_estado_matricula = 4, fecha_retiro_matricula = ?, fecha_baja_matricula = ?,
+                id_usuario_responsable = ?, fecha_modificacion_matricula = CURRENT_TIMESTAMP
                 WHERE id_registro_matricula = ?
                 AND anio_lectivo_matricula = ?"
             );
@@ -446,7 +446,7 @@
                 $statementWithdrawalMatricula->execute([
                     $matricula->fechaRetiro,    // fecha de retiro de la matrícula
                     $matricula->fechaRetiro,    // fecha para la baja de matricula, misma que la del retiro
-                    //$usserId,                   // id del usuario responsable de la transacción
+                    $usserId,                   // id del usuario responsable de la transacción
                     $matricula->idMatricula,    // id de la matricula
                     $matricula->periodo,        // periodo de la matricula
                 ]);
