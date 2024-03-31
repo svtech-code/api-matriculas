@@ -344,6 +344,26 @@
 -- 			 NEW.id_curso, NEW.numero_lista_curso, NEW.fecha_alta_matricula, OLD.anio_lectivo_matricula, 
 --           NEW.id_usuario_responsable, OLD.fecha_alta_matricula);
 -- 	END IF;
+
+-- 	-- registro log para los cambios de apodrado titular
+-- 	IF (OLD.id_apoderado_titular IS DISTINCT FROM NEW.id_apoderado_titular) THEN
+-- 		INSERT INTO libromatricula.change_representative_log
+-- 			(id_registro_matricula, type_representative, id_old_representative, id_new_representative,
+-- 			 period, id_responsible_user)
+-- 		VALUES
+-- 			(OLD.id_registro_matricula, 'TITULAR', OLD.id_apoderado_titular, NEW.id_apoderado_titular,
+-- 			 OLD.anio_lectivo_matricula, NEW.id_usuario_responsable);
+-- 	END IF;
+
+-- 	-- registro log para los cambios de apoderado suplente
+-- 	IF (OLD.id_apoderado_suplente IS DISTINCT FROM NEW.id_apoderado_suplente) THEN
+-- 		INSERT INTO libromatricula.change_representative_log
+-- 			(id_registro_matricula, type_representative, id_old_representative, id_new_representative,
+-- 			 period, id_responsible_user)
+-- 		VALUES
+-- 			(OLD.id_registro_matricula, 'SUPLENTE', OLD.id_apoderado_suplente, NEW.id_apoderado_suplente,
+-- 			 OLD.anio_lectivo_matricula, NEW.id_usuario_responsable);
+-- 	END IF;
 	
 -- 	-- registro log para los retiros de matricula
 -- 	IF (NEW.fecha_retiro_matricula IS NOT NULL AND NEW.id_estado_matricula = 4) THEN
@@ -352,6 +372,7 @@
 -- 		VALUES
 -- 			(OLD.id_registro_matricula, NEW.fecha_retiro_matricula, NEW.id_usuario_responsable);
 -- 	END IF;
+
 	
 -- 	RETURN NEW;
 -- END;
@@ -419,5 +440,16 @@
 
 
 
--- respaldo de función macro para log de retiros y cambios de curso, actualizar ********************************
 
+-- **************************** FUNCTION ****************************
+-- ---------------------------> FUNCION PARA REGISTRAR CAMBIO DE APODERADOS
+
+
+-- ====================================================================>>
+
+
+-- **************************** TRIGGER ****************************
+-- ---------------------------> TRIGGER DE LA FUNCIÓN PARA REGISTRAR CAMBIO DE APODERADOS
+
+
+-- ====================================================================>>

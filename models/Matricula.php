@@ -346,6 +346,9 @@
 
             // obtención de los datos enviados desde el cliente
             $matricula = Flight::request()->data;
+
+            // se obtiene el id_usuario del token
+            $usserId = $this->getToken()->id_usuario;
             
             // obtener nivel educativo a actualizar
             $newLevel = "";
@@ -369,7 +372,7 @@
                 "UPDATE libromatricula.registro_matricula
                 SET numero_matricula = ?, id_estudiante = ?, id_apoderado_titular = ?, 
                 id_apoderado_suplente = ?, grado = ?, fecha_matricula = ?,
-                fecha_modificacion_matricula = CURRENT_TIMESTAMP
+                fecha_modificacion_matricula = CURRENT_TIMESTAMP, id_usuario_responsable = ?
                 WHERE id_registro_matricula = ?;"
             );
 
@@ -394,6 +397,7 @@
                     $matricula->id_suplente ? intval($matricula->id_suplente) : null,
                     intval($matricula->grado),
                     $matricula->fecha_matricula,
+                    $usserId,
                     intval($matricula->id_matricula),
                 ]);
 
