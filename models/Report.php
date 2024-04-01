@@ -486,10 +486,10 @@
 
             // SQL query
             $statementReportCourses = $this->preConsult(
-                "SELECT m.fecha_matricula, m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
-                m.numero_lista_curso AS n_lista,
+                "SELECT to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso, m.numero_lista_curso AS n_lista,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
                 e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
                 (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
@@ -579,7 +579,7 @@
                     $sheetActive->setCellValue('C'.$fila, $course->curso);
                     $sheetActive->setCellValue('D'.$fila, $course->n_lista ? $course->n_lista : "N/A");
                     $sheetActive->setCellValue('E'.$fila, $course->fecha_alta_matricula);
-                    $sheetActive->setCellValue('F'.$fila, $course->fecha_baja_matricula);
+                    $sheetActive->setCellValue('F'.$fila, $course->fecha_retiro_matricula);
                     $sheetActive->setCellValue('G'.$fila, $course->sexo_estudiante);
                     $sheetActive->setCellValue('H'.$fila, $course->apellido_paterno_estudiante);
                     $sheetActive->setCellValue('I'.$fila, $course->apellido_materno_estudiante);
