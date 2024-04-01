@@ -48,15 +48,6 @@
                 ],
             ]
         ];
-
-        // revisar
-        private $borderCompleteStyle = [
-            'borders' => [
-                'allborders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                ],
-            ],
-        ];
         private $styleOrange = [
             'font' => [
                 // 'strikethrough' => true,
@@ -89,7 +80,7 @@
             $this->currentMonth = date('F');
         }
 
-        // método para la creación del archivo excel
+        // method to create excel object
         private function createExcelObject($title) {
             // se crea un objeto libro de excel
             $file = new Spreadsheet();
@@ -104,7 +95,7 @@
             return $file;
         }
 
-        // método de descarga del archivo excel
+        // method to download excel file
         private function downloadExcelFile($file, $title, $period) {
             // cabeceras de la descarga
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -116,15 +107,19 @@
             $writer->save('php://output');
         }
 
-        // método para obtener certificado de matricula
+        // method to generate registration certificate
         public function getCertificadoMatricula($rut, $periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2]);
 
-            // consulta SQL
+            // start transaction
+            $this->beginTransaction();
+            // ========================>
+
+            // SQL query
             $statementReport = $this->preConsult(
                 "SELECT 
                 (e.nombres_estudiante || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
@@ -137,20 +132,24 @@
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReport->execute([$rut, intval($periodo)]);
 
-                // se obtiene un objeto con los datos de la consutla
+                // confirm transaction
+                $this->commit();
+                // ========================>
+
+                // obtaining object with query data
                 $report = $statementReport->fetch(PDO::FETCH_OBJ);
 
-                // ruta de las plantillas de word
+                // routes for word templates
                 $templateCertificadoMatricula = './document/certificadoMatricula.docx';
                 $templateCertificadoMatriculaTemp = './document/certificadoMatricula_temp.docx';
     
-                // crear un objeto TemplateProcessor
+                // create a templateProcessor object
                 $file = new TemplateProcessor($templateCertificadoMatricula);
     
-                // asignación de los datos dinámicos
+                // dynamic data assignment
                 $file->setValues(
                     [
                         'nombre' => $report->nombres_estudiante,
@@ -165,36 +164,47 @@
                     ]
                 );
     
-                // guardar el documento word modificado
+                // save modified word template
                 $file->saveAs($templateCertificadoMatriculaTemp);
     
-                // descargar el documento word generado
+                // download degenerated word document
                 header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
                 header("Content-Disposition: attachment; filename=$templateCertificadoMatriculaTemp");
                 readfile($templateCertificadoMatriculaTemp);
                 unlink($templateCertificadoMatriculaTemp);
 
             } catch (Exception $error) {
-                // expeción personalizada para errores
+                // roll back transaction on error
+                $this->rollBack();
+                // ========================>
+
+                // getting postgreSQL error, if exists
+                $messageError = ErrorHandler::handleError($error, $statementReport);
+
+                // custom exception for errors
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
             
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             }
         }
 
-        // método para obtener certificado de alumno regular
+        // metodh to generate regular student certificate
         public function getCertificadoAlumnoRegular($rut, $periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2]);
 
-            // consulta SQL
+            // start transaction
+            $this->beginTransaction();
+            // ========================>
+
+            // SQL query
             $statementReport = $this->preConsult(
                 "SELECT (e.nombres_estudiante || ' ' || e.apellido_paterno_estudiante 
                 || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
@@ -208,26 +218,29 @@
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReport->execute([$rut, intval($periodo)]);
 
-                // se obtiene un objeto con los datos de la consutla
+                // confirm transaction
+                $this->commit();
+                // ========================>
+
+                // obtaining object with query data
                 $report = $statementReport->fetch(PDO::FETCH_OBJ);
                 
-                // se verifica que los datos se han generado con exito
+                // exception for enrollment without an assidned course
                 if (!$report) {
                     throw new Exception("Matrícula sin curso asignado", 409);
                 }
 
-                // ruta de las plantillas de word
+                // routes for word templates
                 $templateCertificadoAlumnoRegular = './document/certificadoAlumnoRegular.docx';
                 $templateCertificadoAlumnoRegularTemp = './document/certificadoAlumnoRegular_temp.docx';
     
-                // crear un objeto TemplateProcessor
+                // create a templateProcessor object
                 $file = new TemplateProcessor($templateCertificadoAlumnoRegular);
     
-                // asignación de los datos dinamicos
-                // asignación de los datos dinamicos
+                // dynamic data assignment
                 $file->setValues(
                     [
                         'nombre' => $report->nombres_estudiante,
@@ -243,20 +256,24 @@
                     ]
                 );
     
-                // guardar el documento word modificado
+                // save modified word template
                 $file->saveAs($templateCertificadoAlumnoRegularTemp);
     
-                // descargar el documento word generado
+                // download degenerated word document
                 header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
                 header("Content-Disposition: attachment; filename=$templateCertificadoAlumnoRegularTemp");
                 readfile($templateCertificadoAlumnoRegularTemp);
                 unlink($templateCertificadoAlumnoRegularTemp);
 
             } catch (Exception $error) {
-                // obtencion de mensaje de error de postgreSQL si existe
+                // roll back transaction on error
+                $this->rollBack();
+                // ========================>
+
+                // getting postgreSQL error, if exists
                 $messageError = ErrorHandler::handleError($error, $statementReport);
 
-                // obtención del codigo de error
+                // custom exception for errors
                 $statusCode = $error->getCode() ? $error->getCode() : 404;
 
                 // expeción personalizada para errores
@@ -265,34 +282,42 @@
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             }
 
         }
 
-        // método para obtener reporte de matrícula
+        //method to generate registration report
         public function getReportMatricula($dateFrom, $dateTo, $periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2, 3, 4]);
 
-            // sentencia SQL
+            // start transaction
+            $this->beginTransaction();
+            // ========================>
+
+            // SQL query
             $statementReportMatricula = $this->preConsult(
                 "SELECT m.numero_matricula, m.grado, (c.grado_curso || c.letra_curso) AS curso,
+                m.fecha_matricula, m.fecha_alta_matricula,
                 (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
                 e.apellido_paterno_estudiante, e.apellido_materno_estudiante, e.nombres_estudiante,
                 e.nombre_social_estudiante, e.fecha_nacimiento_estudiante, e.sexo_estudiante,
+
                 (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) AS rut_titular,
-                apt.apellido_paterno_apoderado AS paterno_titular, apt.apellido_materno_apoderado AS materno_titular,
-                apt.nombres_apoderado AS nombres_titular, apt.telefono_apoderado AS telefono_titular, 
-                apt.direccion_apoderado AS direccion_titular,
+                (apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado || ' '
+                || apt.nombres_apoderado) AS nombres_titular, apt.telefono_apoderado AS telefono_titular, 
+                apt.direccion_apoderado AS direccion_titular, 
+                    
                 (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_suplente,
-                aps.apellido_paterno_apoderado AS paterno_suplente, aps.apellido_materno_apoderado AS materno_suplente,
-                aps.nombres_apoderado AS nombres_suplente, aps.telefono_apoderado AS telefono_suplente,
-                aps.direccion_apoderado AS direccion_suplente, m.fecha_matricula
+                (aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado || ''
+                || aps.nombres_apoderado) AS nombres_suplente, aps.telefono_apoderado AS telefono_suplente,
+                aps.direccion_apoderado AS direccion_suplente	
+
                 FROM libromatricula.registro_matricula AS m
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
@@ -304,162 +329,164 @@
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReportMatricula->execute([intval($periodo), $dateFrom, $dateTo]);
+
+                // confirm transaction
+                $this->commit();
+                // ========================>
                 
-                // se obtiene un objeto con los datos de la consutla
+                // obtaining object with query data
                 $reportMatricula = $statementReportMatricula->fetchAll(PDO::FETCH_OBJ);
 
-                $file = new Spreadsheet();
-                $file
-                    ->getProperties()
-                    ->setCreator('Dpto. Informática')
-                    ->setLastModifiedBy('Informática')
-                    ->setTitle('Registro matrícula');
+                // create a excel object
+                $file = $this->createExcelObject("Registro Matrícula");
 
+                // selection and modification of the main sheet
                 $file->setActiveSheetIndex(0);
                 $sheetActive = $file->getActiveSheet();
                 $sheetActive->setTitle("Registro de matrículas");
                 $sheetActive->setShowGridLines(false);
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
-                $sheetActive->setAutoFilter('A3:W3');
-                $sheetActive->getStyle('A3:W3')->getFont()->setBold(true)->setSize(12);
-
-                // título del excel
-                // $sheetActive->mergeCells('A1:D1');
+                
+                // excel sheet title
                 $sheetActive->setCellValue('A1', 'Registro de matrículas periodo '. $periodo);
+                
+                // applying filter on headers
+                $sheetActive->setAutoFilter('A3:T3');
 
-                // ancho de las celdas
-                $sheetActive->getColumnDimension('A')->setWidth(11);
-                $sheetActive->getColumnDimension('B')->setWidth(18);
-                $sheetActive->getColumnDimension('C')->setWidth(8);
-                $sheetActive->getColumnDimension('D')->setWidth(8);
-                $sheetActive->getColumnDimension('E')->setWidth(15);
-                $sheetActive->getColumnDimension('F')->setWidth(18);
-                $sheetActive->getColumnDimension('G')->setWidth(18);
+                // application of styles on headers
+                $sheetActive->getStyle('A3:T3')->applyFromArray($this->styleTitle);
+
+                // view lock for headers
+                $sheetActive->freezePane('A4');
+
+                // cell width
+                $sheetActive->getColumnDimension('A')->setWidth(15);
+                $sheetActive->getColumnDimension('B')->setWidth(20);
+                $sheetActive->getColumnDimension('C')->setWidth(15);
+                $sheetActive->getColumnDimension('D')->setWidth(10);
+                $sheetActive->getColumnDimension('E')->setWidth(10);
+                $sheetActive->getColumnDimension('F')->setWidth(20);
+                $sheetActive->getColumnDimension('G')->setWidth(24);
                 $sheetActive->getColumnDimension('H')->setWidth(24);
-                $sheetActive->getColumnDimension('I')->setWidth(18);
-                $sheetActive->getColumnDimension('J')->setWidth(18);
-                $sheetActive->getColumnDimension('K')->setWidth(15);
+                $sheetActive->getColumnDimension('I')->setWidth(40);
+                $sheetActive->getColumnDimension('J')->setWidth(20);
+                $sheetActive->getColumnDimension('K')->setWidth(20);
+                $sheetActive->getColumnDimension('L')->setWidth(18);
 
-                $sheetActive->getColumnDimension('L')->setWidth(15);
-                $sheetActive->getColumnDimension('M')->setWidth(18);
-                $sheetActive->getColumnDimension('N')->setWidth(18);
-                $sheetActive->getColumnDimension('O')->setWidth(24);
-                $sheetActive->getColumnDimension('P')->setWidth(18);
-                $sheetActive->getColumnDimension('Q')->setWidth(40);
+                $sheetActive->getColumnDimension('M')->setWidth(16);
+                $sheetActive->getColumnDimension('N')->setWidth(40);
+                $sheetActive->getColumnDimension('O')->setWidth(22);
+                $sheetActive->getColumnDimension('P')->setWidth(60);
 
-                $sheetActive->getColumnDimension('R')->setWidth(15);
-                $sheetActive->getColumnDimension('S')->setWidth(18);
-                $sheetActive->getColumnDimension('T')->setWidth(18);
-                $sheetActive->getColumnDimension('U')->setWidth(24);
-                $sheetActive->getColumnDimension('V')->setWidth(18);
-                $sheetActive->getColumnDimension('W')->setWidth(40);
+                $sheetActive->getColumnDimension('Q')->setWidth(16);
+                $sheetActive->getColumnDimension('R')->setWidth(40);
+                $sheetActive->getColumnDimension('S')->setWidth(22);
+                $sheetActive->getColumnDimension('T')->setWidth(60);
 
-                // alineacion del contenido de las celdas
-                $sheetActive->getStyle('A:D')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('K')->getAlignment()->setHorizontal('center');
+
+                // cell content alignment
+                $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('K:L')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('O')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('S')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');                
+                $sheetActive->getStyle('A3:T3')->getAlignment()->setHorizontal('left');                
 
-                // titulo de la tabla
-                $sheetActive->setCellValue('A3', 'MATRÍCULA');
+                // header titles
+                $sheetActive->setCellValue('A3', 'MATRICULA');
                 $sheetActive->setCellValue('B3', 'FECHA_MATRICULA');
-                $sheetActive->setCellValue('C3', 'GRADO');
-                $sheetActive->setCellValue('D3', 'CURSO');
-                $sheetActive->setCellValue('E3', 'RUT_ESTUDIANTE');
-                $sheetActive->setCellValue('F3', 'APELLIDO_PATERNO');
-                $sheetActive->setCellValue('G3', 'APELLIDO_MATERNO');
-                $sheetActive->setCellValue('H3', 'NOMBRES_ESTUDIANTE');
-                $sheetActive->setCellValue('I3', 'NOMBRE_SOCIAL');
-                $sheetActive->setCellValue('J3', 'FECHA_NACIMIENTO');
-                $sheetActive->setCellValue('K3', 'SEXO_ESTUDIANTE');
+                $sheetActive->setCellValue('C3', 'FECHA_ALTA');
+                $sheetActive->setCellValue('D3', 'GRADO');
+                $sheetActive->setCellValue('E3', 'CURSO');
+                $sheetActive->setCellValue('F3', 'RUT_ESTUDIANTE');
+                $sheetActive->setCellValue('G3', 'APELLIDO_PATERNO');
+                $sheetActive->setCellValue('H3', 'APELLIDO_MATERNO');
+                $sheetActive->setCellValue('I3', 'NOMBRES_ESTUDIANTE');
+                $sheetActive->setCellValue('J3', 'NOMBRE_SOCIAL');
+                $sheetActive->setCellValue('K3', 'FECHA_NACIMIENTO');
+                $sheetActive->setCellValue('L3', 'SEXO_ESTUDIANTE');
 
-                // datos apoderado titular
-                $sheetActive->setCellValue('L3', 'RUT_TITULAR');
-                $sheetActive->setCellValue('M3', 'APELLIDO_PATERNO');
-                $sheetActive->setCellValue('N3', 'APELLIDO_MATERNO');
-                $sheetActive->setCellValue('O3', 'NOMBRES_TITULAR');
-                $sheetActive->setCellValue('P3', 'TELEFONO_TITULAR');
-                $sheetActive->setCellValue('Q3', 'DIRECCOIN_TITULAR');
+                $sheetActive->setCellValue('M3', 'RUT_TITULAR');
+                $sheetActive->setCellValue('N3', 'NOMBRES_TITULAR');
+                $sheetActive->setCellValue('O3', 'TELEFONO_TITULAR');
+                $sheetActive->setCellValue('P3', 'DIRECCOIN_TITULAR');
 
-                // datos apoderado suplente
-                $sheetActive->setCellValue('R3', 'RUT_SUPLENTE');
-                $sheetActive->setCellValue('S3', 'APELLIDO_PATERNO');
-                $sheetActive->setCellValue('T3', 'APELLIDO_MATERNO');
-                $sheetActive->setCellValue('U3', 'NOMBRES_SUPLENTE');
-                $sheetActive->setCellValue('V3', 'TELEFONO_SUPLENTE');
-                $sheetActive->setCellValue('W3', 'DIRECCOIN_SUPLENTE');
+                $sheetActive->setCellValue('Q3', 'RUT_SUPLENTE');
+                $sheetActive->setCellValue('R3', 'NOMBRES_SUPLENTE');
+                $sheetActive->setCellValue('S3', 'TELEFONO_SUPLENTE');
+                $sheetActive->setCellValue('T3', 'DIRECCION_SUPLENTE');
 
-
+                // main writing row
                 $fila = 4;
-                // se recorre el objeto para obtener un array con todos los datos de la consulta
+
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
                 foreach ($reportMatricula as $report) {
                     $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
                     $sheetActive->setCellValue('B'.$fila, $report->fecha_matricula);
-                    $sheetActive->setCellValue('C'.$fila, $report->grado);
-                    $sheetActive->setCellValue('D'.$fila, $report->curso);
-                    $sheetActive->setCellValue('E'.$fila, $report->rut_estudiante);
-                    $sheetActive->setCellValue('F'.$fila, $report->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('G'.$fila, $report->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $report->nombres_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $report->nombre_social_estudiante);
-                    $sheetActive->setCellValue('J'.$fila, $report->fecha_nacimiento_estudiante);
-                    $sheetActive->setCellValue('K'.$fila, $report->sexo_estudiante);
+                    $sheetActive->setCellValue('C'.$fila, $report->fecha_alta_matricula);
+                    $sheetActive->setCellValue('D'.$fila, $report->grado);
+                    $sheetActive->setCellValue('E'.$fila, $report->curso);
+                    $sheetActive->setCellValue('F'.$fila, $report->rut_estudiante);
+                    $sheetActive->setCellValue('G'.$fila, $report->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $report->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $report->nombres_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $report->nombre_social_estudiante);
+                    $sheetActive->setCellValue('K'.$fila, $report->fecha_nacimiento_estudiante);
+                    $sheetActive->setCellValue('L'.$fila, $report->sexo_estudiante);
 
-                    $sheetActive->setCellValue('L'.$fila, $report->rut_titular);
-                    $sheetActive->setCellValue('M'.$fila, $report->paterno_titular);
-                    $sheetActive->setCellValue('N'.$fila, $report->materno_titular);
-                    $sheetActive->setCellValue('O'.$fila, $report->nombres_titular);
-                    $sheetActive->setCellValue('P'.$fila, $report->telefono_titular ? '+569-'. $report->telefono_titular : $report->telefono_titular);
-                    $sheetActive->setCellValue('Q'.$fila, $report->direccion_titular);
+                    $sheetActive->setCellValue('M'.$fila, $report->rut_titular);
+                    $sheetActive->setCellValue('N'.$fila, $report->nombres_titular);
+                    $sheetActive->setCellValue('O'.$fila, $report->telefono_titular ? '+569-'. $report->telefono_titular : $report->telefono_titular);
+                    $sheetActive->setCellValue('P'.$fila, $report->direccion_titular);
 
-                    $sheetActive->setCellValue('R'.$fila, $report->rut_suplente);
-                    $sheetActive->setCellValue('S'.$fila, $report->paterno_suplente);
-                    $sheetActive->setCellValue('T'.$fila, $report->materno_suplente);
-                    $sheetActive->setCellValue('U'.$fila, $report->nombres_suplente);
-                    $sheetActive->setCellValue('V'.$fila, $report->telefono_suplente ? '+569-'. $report->telefono_suplente : $report->telefono_suplente);
-                    $sheetActive->setCellValue('W'.$fila, $report->direccion_suplente);
+                    $sheetActive->setCellValue('Q'.$fila, $report->rut_suplente);
+                    $sheetActive->setCellValue('R'.$fila, $report->nombres_suplente);
+                    $sheetActive->setCellValue('S'.$fila, $report->telefono_suplente ? '+569-'. $report->telefono_suplente : $report->telefono_suplente);
+                    $sheetActive->setCellValue('T'.$fila, $report->direccion_suplente);
 
                     $fila++;
                 }
 
-                // cabeceras de la descarga
-                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
-                header('Cache-Control: max-age=0');
-
-                // se genera el archivo excel
-                $writer = IOFactory::createWriter($file, 'Xlsx');
-                $writer->save('php://output');
+                // excel file download ========================>
+                $this->downloadExcelFile($file, "ReporteMatricula_", $periodo);
 
             } catch (Exception $error) {
-                // expeción personalizada para errores
+                // roll back transaction on error
+                $this->rollBack();
+                // ========================>
+
+                // getting postgreSQL error, if exists
+                $messageError = ErrorHandler::handleError($error, $statementReportMatricula);
+
+                // custom exception for errors
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             }
 
         }
 
-        // método para obtener reporte de estudiantes y cursos
+        // method to generate course report
         public function getReportCourses($periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2, 3, 4]);
 
-            // iniciar transaccion
+            // start transaction
             $this->beginTransaction();
             // ========================>
 
-            // sentencia SQL
+            // SQL query
             $statementReportCourses = $this->preConsult(
-                "SELECT m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
+                "SELECT m.fecha_matricula, m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso,
                 m.numero_lista_curso AS n_lista,
                 to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
                 to_char(m.fecha_baja_matricula, 'DD/MM/YYYY') AS fecha_baja_matricula,
@@ -472,141 +499,146 @@
                 LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
                 WHERE m.anio_lectivo_matricula = ?
-                order by curso, m.numero_lista_curso"
+                order by curso, m.numero_lista_curso;"
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReportCourses->execute([intval($periodo)]);
 
-                // confirmar transacción
+                // confirm transaction
                 $this->commit();
                 // ========================>
 
-                // se obtiene un objeto con los datos de la consulta
+                // obtaining object with query data
                 $reportCourses = $statementReportCourses->fetchAll(PDO::FETCH_OBJ);
 
-                // creación del objeto excel
+                // create a excel object
                 $file = $this->createExcelObject("Registro cursos");
 
-                // se comienza a trabajar con la seleccion de hojas y celdas
+                // selection and modification of the main sheet
                 $file->setActiveSheetIndex(0);
                 $sheetActive = $file->getActiveSheet();
                 $sheetActive->setTitle("Registro de cursos");
                 $sheetActive->setShowGridLines(false);                
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
                 
-                // titulo de la hoja de excel
+                // excel sheet title
                 $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
 
-                // filtro para los encabezados
-                $sheetActive->setAutoFilter('A3:K3');   
-                $sheetActive->getStyle('A3:K3')->applyFromArray($this->styleTitle);
+                // applying filter on headers
+                $sheetActive->setAutoFilter('A3:L3');
 
+                // application of styles on headers
+                $sheetActive->getStyle('A3:L3')->applyFromArray($this->styleTitle);
 
-                // ancho de las celdas
-                $sheetActive->getColumnDimension('A')->setWidth(18);
-                $sheetActive->getColumnDimension('B')->setWidth(14);
-                $sheetActive->getColumnDimension('C')->setWidth(14);
-                $sheetActive->getColumnDimension('D')->setWidth(18);
-                $sheetActive->getColumnDimension('E')->setWidth(18);
-                $sheetActive->getColumnDimension('F')->setWidth(14);
-                $sheetActive->getColumnDimension('G')->setWidth(22);
+                // view lock for headers
+                $sheetActive->freezePane('A4');
+
+                // cell width
+                $sheetActive->getColumnDimension('A')->setWidth(20);
+                $sheetActive->getColumnDimension('B')->setWidth(18);
+                $sheetActive->getColumnDimension('C')->setWidth(10);
+                $sheetActive->getColumnDimension('D')->setWidth(10);
+                $sheetActive->getColumnDimension('E')->setWidth(16);
+                $sheetActive->getColumnDimension('F')->setWidth(16);
+                $sheetActive->getColumnDimension('G')->setWidth(10);
                 $sheetActive->getColumnDimension('H')->setWidth(22);
-                $sheetActive->getColumnDimension('I')->setWidth(30);
-                $sheetActive->getColumnDimension('J')->setWidth(22);
-                $sheetActive->getColumnDimension('K')->setWidth(22);
+                $sheetActive->getColumnDimension('I')->setWidth(22);
+                $sheetActive->getColumnDimension('J')->setWidth(30);
+                $sheetActive->getColumnDimension('K')->setWidth(20);
+                $sheetActive->getColumnDimension('L')->setWidth(24);
 
-                // alineación del contenido de las celdas
-                $sheetActive->getStyle('A:F')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
+                // cell content alignment
+                $sheetActive->getStyle('A:G')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('K')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
+                $sheetActive->getStyle('A3:L3')->getAlignment()->setHorizontal('left'); 
 
-                // título de las columnas
-                $sheetActive->setCellValue('A3', 'Nº MATRICULA');
-                $sheetActive->setCellValue('B3', 'CURSO');
-                $sheetActive->setCellValue('C3', 'N LISTA');
-                $sheetActive->setCellValue('D3', 'FECHA ALTA');
-                $sheetActive->setCellValue('E3', 'FECHA RETIRO');
-                $sheetActive->setCellValue('F3', 'SEXO');
-                $sheetActive->setCellValue('G3', 'APELLIDO PATERNO');
-                $sheetActive->setCellValue('H3', 'APELLIDO MATERNO');
-                $sheetActive->setCellValue('I3', 'NOMBRES');
-                $sheetActive->setCellValue('J3', 'RUT ESTUDIANTE');
-                $sheetActive->setCellValue('K3', 'ESTADO ESTUDIANTE');
+                // header titles
+                $sheetActive->setCellValue('A3', 'FECHA MATRICULA');
+                $sheetActive->setCellValue('B3', 'Nº MATRICULA');
+                $sheetActive->setCellValue('C3', 'CURSO');
+                $sheetActive->setCellValue('D3', 'N LISTA');
+                $sheetActive->setCellValue('E3', 'FECHA ALTA');
+                $sheetActive->setCellValue('F3', 'FECHA RETIRO');
+                $sheetActive->setCellValue('G3', 'SEXO');
+                $sheetActive->setCellValue('H3', 'APELLIDO PATERNO');
+                $sheetActive->setCellValue('I3', 'APELLIDO MATERNO');
+                $sheetActive->setCellValue('J3', 'NOMBRES');
+                $sheetActive->setCellValue('K3', 'RUT ESTUDIANTE');
+                $sheetActive->setCellValue('L3', 'ESTADO ESTUDIANTE');
 
-                // inicio de la fila
+                // main writing row
                 $fila = 4;
 
-                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
                 foreach ($reportCourses as $course) {
-                    $sheetActive->setCellValue('A'.$fila, $course->numero_matricula ? $course->numero_matricula: "N/A");
-                    $sheetActive->setCellValue('B'.$fila, $course->curso);
-                    $sheetActive->setCellValue('C'.$fila, $course->n_lista ? $course->n_lista : "N/A");
-                    $sheetActive->setCellValue('D'.$fila, $course->fecha_alta_matricula);
-                    $sheetActive->setCellValue('E'.$fila, $course->fecha_baja_matricula);
-                    $sheetActive->setCellValue('F'.$fila, $course->sexo_estudiante);
-                    $sheetActive->setCellValue('G'.$fila, $course->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $course->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $course->nombres_estudiante);
-                    $sheetActive->setCellValue('J'.$fila, $course->rut_estudiante);
-                    $sheetActive->setCellValue('K'.$fila, $course->estado_estudiante);
+                    $sheetActive->setCellValue('A'.$fila, $course->fecha_matricula);
+                    $sheetActive->setCellValue('B'.$fila, $course->numero_matricula ? $course->numero_matricula: "N/A");
+                    $sheetActive->setCellValue('C'.$fila, $course->curso);
+                    $sheetActive->setCellValue('D'.$fila, $course->n_lista ? $course->n_lista : "N/A");
+                    $sheetActive->setCellValue('E'.$fila, $course->fecha_alta_matricula);
+                    $sheetActive->setCellValue('F'.$fila, $course->fecha_baja_matricula);
+                    $sheetActive->setCellValue('G'.$fila, $course->sexo_estudiante);
+                    $sheetActive->setCellValue('H'.$fila, $course->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $course->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $course->nombres_estudiante);
+                    $sheetActive->setCellValue('K'.$fila, $course->rut_estudiante);
+                    $sheetActive->setCellValue('L'.$fila, $course->estado_estudiante);
 
-                    // aplicar estilo color rojo para retirados
+                    // apply red highlight style for withdrawals (aplicar estilo resaltado rojo para retiros)
                     if ($course->estado_estudiante === 'Retirado (a)') {
-                        $sheetActive->getStyle('A'.$fila.':K'.$fila)->applyFromArray($this->styleRetired);
+                        $sheetActive->getStyle('A'.$fila.':L'.$fila)->applyFromArray($this->styleRetired);
                     }
 
-                    // aplicar estilo color naranjo para suspendidos
+                    // apply orange highlight style for suspension (aplicar estilo resaltado naranjo para suspención)
                     if ($course->estado_estudiante === 'Suspendido (a)') {
-                        $sheetActive->getStyle('A'.$fila.':K'.$fila)->applyFromArray($this->styleOrange);
+                        $sheetActive->getStyle('A'.$fila.':L'.$fila)->applyFromArray($this->styleOrange);
                     }
                     
                     $fila++;
                 }
 
-                // descarga del archivo excel ========================>
+                // excel file download ========================>
                 $this->downloadExcelFile($file, "ReporteCursos_", $periodo);
 
             } catch (Exception $error) {
-                // revertir transaccion en caso de error
+                // roll back transaction on error
                 $this->rollBack();
                 // ========================>
 
-                // obtencion de mensaje de error de postgreSQL si existe
+                // getting postgreSQL error, if exists
                 $messageError = ErrorHandler::handleError($error, $statementReportCourses);
 
-                // expeción personalizada para errores
+                // custom exception for errors
                 Flight::halt(404, json_encode([
                     "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             }
-
-
-
         }
 
-        // trabajar en método para descargar reporte por curso !!!!!!
+        // method to generate course payroll
         public function getReportCourse($periodo, $course) {
-            // se valida el token del usuario
+           // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2, 4]);
 
-            // obtención de letra y grado por separados
+            // separate letter and grade management
             $grado = substr($course, 0, 1);
             $letra = substr($course, 1, 1);
             
-            // iniciar transaccion
+            // start transaction
             $this->beginTransaction();
             // ========================>
 
-            // sentencia SQL
+            // SQL query
             $statementReportCourseLetter = $this->preConsult(
                 "SELECT 
                     numero_lista,
@@ -725,7 +757,7 @@
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReportCourseLetter->execute([
                     intval($periodo),       // para p.anio_lectivo
                     intval($periodo),       // para m.anio_lectivo_matricula
@@ -743,39 +775,42 @@
                     intval($periodo),       // para periodo_escolar
                 ]);
 
-                // confirmar transacción
+                // confirm transaction
                 $this->commit();
                 // ========================>
 
-                // se obtiene un objeto con los datos de la consulta
+                // obtaining object with query data
                 $reportCourseLetter = $statementReportCourseLetter->fetchAll(PDO::FETCH_OBJ);
 
-                // cargar plantilla
+                // load template
                 $file = IOFactory::load("./document/nomina_curso.xlsx");
 
-                // obtener la hoja de calculo activa
+                // get active spreedsheet
                 $sheetActive = $file->getActiveSheet();
+
+                // assign title to the sheet
                 $sheetActive->setTitle("Nómina ". $course);
 
-                // título de la nómina
+                // payroll title
                 $sheetActive->setCellValue('C3', "NÓMINA PARA REGISTRO DE ASISTENCIA DIARIA ". $periodo);
 
-                // asignación del curso
+                // course asignment
                 $sheetActive->setCellValue('I6', $course);
 
-                // encargados del curso
+                // course officials
                 $docenteJefe = "";
                 $inspectorGeneral = "";
                 $paradocente = "";
 
-                // contador para cantidad de estudiantes por sexo
+                // counter for student gender
                 $countMale = 0;
                 $countFemale = 0;
                 $countTotal = 0;
 
-                // inicio de la fila
+                // main writing row
                 $fila = 12;
 
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
                 foreach ($reportCourseLetter as $courseLetter) {
                     $sheetActive->setCellValue('A'.$fila, $courseLetter->numero_lista);
                     $sheetActive->setCellValue('B'.$fila, $courseLetter->numero_matricula);
@@ -787,17 +822,17 @@
                     $sheetActive->setCellValue('H'.$fila, $courseLetter->nombres_estudiante);
                     $sheetActive->setCellValue('I'.$fila, $courseLetter->rut_estudiante);
 
-                    // aplicar estilo color rojo para retirados
+                    // apply red highlight style for withdrawals (aplicar estilo resaltado rojo para retiros)
                     if ($courseLetter->fecha_baja_matricula) {
                         $sheetActive->getStyle('A'.$fila.':I'.$fila)->applyFromArray($this->styleWithdrawal);
                     }
 
-                    // obtención responsables del curso
+                    // obtain officials responsible for the course
                     if (empty($docenteJefe)) $docenteJefe = $courseLetter->docente_jefe;
                     if (empty($inspectorGeneral)) $inspectorGeneral = $courseLetter->inspector_general;
                     if (empty($paradocente)) $paradocente = $courseLetter->paradocente;
 
-                    // contador de cantidad de estudiantes por sexo y total
+                    // student gender counter and total
                     if ($courseLetter->sexo_estudiante === 1 && !$courseLetter->fecha_baja_matricula) $countMale++;
                     if ($courseLetter->sexo_estudiante === 2 && !$courseLetter->fecha_baja_matricula) $countFemale++;
                     if (!$courseLetter->fecha_baja_matricula) $countTotal++;
@@ -805,69 +840,67 @@
                     $fila++;
                 }
 
-                // asignación responsables del curso
+                // assugnment of the obtained variables 
                 $sheetActive->setCellValue('F6', $docenteJefe);
                 $sheetActive->setCellValue('F7', $inspectorGeneral);
                 $sheetActive->setCellValue('F8', $paradocente);
 
-                // asignar cantidades al Excel
                 $sheetActive->setCellValue('F58', $countMale);
                 $sheetActive->setCellValue('F59', $countFemale);
                 $sheetActive->setCellValue('F60', $countTotal);
 
-                // Establecer la zona horaria de Chile
+                // set local time zone
                 $zonaHorariaChile = new DateTimeZone('America/Santiago');
                 
-                // Crear un objeto DateTime con la zona horaria de Chile
+                // create object with local timezone
                 $horaActualChile = new DateTime('now', $zonaHorariaChile);
                 
-                // insertar fecha y hora actual en que se genera la nómina
+                // set timezone in payroll
                 $sheetActive->setCellValue('I61', $horaActualChile->format('d-m-Y H:i:s'));
 
-                // Configuración del encabezado HTTP para la descarga del archivo
+                // setting http headers for file download
                 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
                 header('Content-Disposition: attachment;filename="Nómina_2024.xlsx"');
                 header('Cache-Control: max-age=0');
 
-                // Generar el archivo
+                // generate file
                 $writer = new Xlsx($file);
 
-                // Descarga del archivo Excel
+                // download excel file
                 $writer->save('php://output');
 
             } catch (Exception $error) {
-                // revertir transaccion en caso de error
+                // roll back transaction on error
                 $this->rollBack();
                 // ========================>
 
-                // obtencion de mensaje de error de postgreSQL si existe
+                // getting postgreSQL error, if exists
                 $messageError = ErrorHandler::handleError($error, $statementReportCourseLetter);
 
-                // expeción personalizada para errores
+                // custom exception for errors
                 Flight::halt(404, json_encode([
                     "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                 // closing the connection with the database
                 $this->closeConnection();
             }
-
-
-
-
-
         }
 
-        // método para obtener reporte del proceso de matrícula
+        // method to generate registration process report
         public function getReportProcessMatricula($periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2, 4]);
 
-            // sentencia SQL
+            // start transaction
+            $this->beginTransaction();
+            // ========================>
+
+            // SQL query
             $statementReportProcessMatricula = $this->preConsult(
                 "SELECT m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
                 l.grado_matricula, (CASE WHEN e.nombre_social_estudiante IS NULL THEN 
@@ -883,32 +916,38 @@
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReportProcessMatricula->execute([intval($periodo), intval($periodo)]);
                 
-                // se obtiene un objeto con los datos de la consutla
+                // confirm transaction
+                $this->commit();
+                // ========================>
+                
+                // obtaining object with query data
                 $reportProcessMatricula = $statementReportProcessMatricula->fetchAll(PDO::FETCH_OBJ);
 
-                // creación del objeto excel
-                $file = new Spreadsheet();
-                $file
-                    ->getProperties()
-                    ->setCreator('Dpto. Informática')
-                    ->setLastModifiedBy('Informática')
-                    ->setTitle('Registro proceso matrícula');
+                // create a excel object
+                $file = $this->createExcelObject("Registro proceso matrícula");
 
                 $file->setActiveSheetIndex(0);
                 $sheetActive = $file->getActiveSheet();
                 $sheetActive->setTitle('Registro proceso matrícula');
                 $sheetActive->setShowGridlines(false);
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
-                $sheetActive->setAutoFilter('A3:G3');
+                
+                // excel sheet title
+                $sheetActive->setCellValue('A1', 'Registro Proceso matrícula periodo '. $periodo);
+                
+                // applying filter on headers
+                $sheetActive->setAutoFilter('A3:G3'); 
+                
+                // application of styles on headers
                 $sheetActive->getStyle('A3:G3')->getFont()->setBold(true)->setSize(12);
 
-                // título del excel
-                $sheetActive->setCellValue('A1', 'Registro Proceso matrícula periodo '. $periodo);
+                // view lock for headers
+                $sheetActive->freezePane('A4');
 
-                // ancho de las celdas
+                // cell width
                 $sheetActive->getColumnDimension('A')->setWidth(15);
                 $sheetActive->getColumnDimension('B')->setWidth(20);
                 $sheetActive->getColumnDimension('C')->setWidth(10);
@@ -917,12 +956,12 @@
                 $sheetActive->getColumnDimension('F')->setWidth(20);
                 $sheetActive->getColumnDimension('G')->setWidth(20);
 
-                // alineación del contenido de las celdas
+                // cell content alignment
                 $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('E:G')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');
 
-                // titulo de la tabla
+                // header titles
                 $sheetActive->setCellValue('A3', 'MATRICULA');
                 $sheetActive->setCellValue('B3', 'RUT');
                 $sheetActive->setCellValue('C3', 'GRADO');
@@ -931,8 +970,10 @@
                 $sheetActive->setCellValue('F3', 'ESTADO');
                 $sheetActive->setCellValue('G3', 'FECHA MATRICULA');
 
-                // datos de la tabla
+                // main writing row
                 $fila = 4;
+
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
                 foreach($reportProcessMatricula as $processMatricula) {
                     $sheetActive->setCellValue('A'.$fila, $processMatricula->numero_matricula);
                     $sheetActive->setCellValue('B'.$fila, $processMatricula->rut_estudiante);
@@ -945,149 +986,151 @@
                     $fila++;
                 }
 
-                // cabeceras de la descarga
-                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                header('Content-Disposition: attachment;filename="ReporteMatricula_'.$periodo.'xlsx"');
-                header('Cache-Control: max-age=0');
-
-                // se crea el archivo excel
-                $writer = IOFactory::createWriter($file, 'Xlsx');
-                $writer->save('php://output');
+                // excel file download ========================>
+                $this->downloadExcelFile($file, "ReporteMatricula_", $periodo);
 
             } catch (Exception $error) {
-                // expeción personalizada para errores
+                // roll back transaction on error
+                $this->rollBack();
+                // ========================>
+
+                 // getting postgreSQL error, if exists
+                $messageError = ErrorHandler::handleError($error, $statementReportProcessMatricula);
+
+                // custom exception for errors
                 Flight::halt(404, json_encode([
-                    "message" => "Error: ". $error->getMessage()
+                    "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             }
-
         }
 
-        // método para obtener reporte del cambio de cursos
+        // method to generate report of course change
         public function getReportChangeCourse($periodo) {
-            // se valida el token del usuario
+            // user token validation
             $this->validateToken();
 
-            // se validan los privilegios del usuario
+            // user privilege validation
             $this->validatePrivilege([1, 2, 4]);
 
-            // iniciar transaccion
+            // start transaction
             $this->beginTransaction();
             // ========================>
 
-            // sentencia SQL
+            // SQL query
             $statementReportChangeCourse = $this->preConsult(
-                " SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                "SELECT (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
                 ((CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante 
                 ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) || ' ' 
                 || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
-                (oldc.grado_curso || oldc.letra_curso) as old_course, 
-                old_list_number, (newc.grado_curso || newc.letra_curso) as new_course, new_list_number, new_assignment_date
+                withdrawal_date, (oldc.grado_curso || oldc.letra_curso) as old_course, old_list_number,
+                new_assignment_date, (newc.grado_curso || newc.letra_curso) as new_course, new_list_number
                 FROM libromatricula.change_course_log AS log
                 INNER JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = log.id_registro_matricula
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 INNER JOIN libromatricula.registro_curso AS oldc ON oldc.id_curso = log.id_old_course
                 INNER JOIN libromatricula.registro_curso AS newc ON newc.id_curso = log.id_new_course
-                WHERE m.anio_lectivo_matricula = ?
+                WHERE m.anio_lectivo_matricula = ? AND old_list_number IS NOT NULL
                 ORDER BY new_assignment_date;"
             );
 
             try {
-                // se ejecuta la consulta
+                // SQL query execution
                 $statementReportChangeCourse->execute([intval($periodo)]);
 
-                // confirmar transacción
+                // confirm transaction
                 $this->commit();
                 // ========================>
 
-                // se obtiene un objeto con los datos de la consulta
+                // obtaining object with query data
                 $reportChangeCourse = $statementReportChangeCourse->fetchAll(PDO::FETCH_OBJ);
 
-                // Flight::json($reportChangeCourse);
-                // creación del objeto excel
+                // create a excel object
                 $file = $this->createExcelObject("Registro cambios curso");
 
-                // se comienza a trabajar con la seleccion de hojas y celdas
+                // selection and modification of the main sheet
                 $file->setActiveSheetIndex(0);
                 $sheetActive = $file->getActiveSheet();
                 $sheetActive->setTitle("Registro cambios de curso");
                 $sheetActive->setShowGridLines(false); 
                 $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
                 
-                // titulo de la hoja de excel
+                // excel sheet title
                 $sheetActive->setCellValue('A1', 'Cambios de curso periodo '. $periodo);
 
+                // applying filter on headers
+                $sheetActive->setAutoFilter('A3:H3'); 
 
-                // filtro para los encabezados
-                $sheetActive->setAutoFilter('A3:G3'); 
-                $sheetActive->getStyle('A3:G3')->applyFromArray($this->styleTitle);
+                // application of styles on headers
+                $sheetActive->getStyle('A3:H3')->applyFromArray($this->styleTitle);
 
-                // ancho de las celdas
+                // view lock for headers
+                $sheetActive->freezePane('A4');
+
+                // cell width
                 $sheetActive->getColumnDimension('A')->setWidth(20);
                 $sheetActive->getColumnDimension('B')->setWidth(45);
-                $sheetActive->getColumnDimension('C')->setWidth(20);
+                $sheetActive->getColumnDimension('C')->setWidth(15);
                 $sheetActive->getColumnDimension('D')->setWidth(20);
                 $sheetActive->getColumnDimension('E')->setWidth(20);
-                $sheetActive->getColumnDimension('F')->setWidth(20);
-                $sheetActive->getColumnDimension('G')->setWidth(24);
+                $sheetActive->getColumnDimension('F')->setWidth(15);
+                $sheetActive->getColumnDimension('G')->setWidth(20);
+                $sheetActive->getColumnDimension('H')->setWidth(20);
 
-                // alineación del contenido de las celdas
-                $sheetActive->getStyle('C:F')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('C3:F3')->getAlignment()->setHorizontal('left');
-                // // $sheetActive->getStyle('I')->getAlignment()->setHorizontal('center');
-                // // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
+                // cell content alignment
+                $sheetActive->getStyle('C:H')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('C3:H3')->getAlignment()->setHorizontal('left');
 
-                // título de las columnas
+                // header titles
                 $sheetActive->setCellValue('A3', 'RUT ESTUDIANTE');
                 $sheetActive->setCellValue('B3', 'NOMBRES ESTUDIANTE');
-                $sheetActive->setCellValue('C3', 'CURSO ANTIGUO');
-                $sheetActive->setCellValue('D3', 'N LISTA ANTIGUO');
-                $sheetActive->setCellValue('E3', 'CURSO NUEVO');
-                $sheetActive->setCellValue('F3', 'N LISTA NUEVO');
-                $sheetActive->setCellValue('G3', 'FECHA DEL CAMBIO');
+                $sheetActive->setCellValue('C3', 'FECHA BAJA');
+                $sheetActive->setCellValue('D3', 'CURSO ANTIGUO');
+                $sheetActive->setCellValue('E3', 'N LISTA ANTIGUO');
+                $sheetActive->setCellValue('F3', 'FECHA ALTA');
+                $sheetActive->setCellValue('G3', 'CURSO NUEVO');
+                $sheetActive->setCellValue('H3', 'N LISTA NUEVO');
 
-                // inicio de la fila
+                // main writing row
                 $fila = 4;
 
-                // se recorre el objeto para obtener un array con todos los datos de la consulta realizada
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
                 foreach ($reportChangeCourse as $change) {
                     $sheetActive->setCellValue('A'.$fila, $change->rut_estudiante);
                     $sheetActive->setCellValue('B'.$fila, $change->nombres_estudiante);
-                    $sheetActive->setCellValue('C'.$fila, $change->old_course);
-                    $sheetActive->setCellValue('D'.$fila, $change->old_list_number);
-                    $sheetActive->setCellValue('E'.$fila, $change->new_course);
-                    $sheetActive->setCellValue('F'.$fila, $change->new_list_number);
-                    $sheetActive->setCellValue('G'.$fila, $change->new_assignment_date);
-                    
+                    $sheetActive->setCellValue('C'.$fila, $change->withdrawal_date);
+                    $sheetActive->setCellValue('D'.$fila, $change->old_course);
+                    $sheetActive->setCellValue('E'.$fila, $change->old_list_number);
+                    $sheetActive->setCellValue('F'.$fila, $change->new_assignment_date);
+                    $sheetActive->setCellValue('G'.$fila, $change->new_course);
+                    $sheetActive->setCellValue('H'.$fila, $change->new_list_number);
+
                     $fila++;
                 }
 
-                // descarga del archivo excel ========================>
+                // excel file download ========================>
                 $this->downloadExcelFile($file, "ReporteCambioCursos_", $periodo);
 
             } catch (Exception $error) {
-                // revertir transaccion en caso de error
+                // roll back transaction on error
                 $this->rollBack();
                 // ========================>
 
-                // obtencion de mensaje de error de postgreSQL si existe
+                // getting postgreSQL error, if exists
                 $messageError = ErrorHandler::handleError($error, $statementReportChangeCourse);
 
-                // expeción personalizada para errores
+                // custom exception for errors
                 Flight::halt(404, json_encode([
                     "message" => "Error: ". $messageError,
                 ]));
 
             } finally {
-                // cierre de la conexión con la base de datos
+                // closing the connection with the database
                 $this->closeConnection();
             };
-           
-
         }
 
 
