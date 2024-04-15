@@ -640,8 +640,8 @@
                     }
 
                     // apply gray highlight style for lows (aplicar estilo resaltado gris para bajas)
-                    if ($course->estado_estudiante === 'Matriculado (a)') {
-                        $sheetActive->getStyle('A'.$fila.':M'.$fila)->applyFromArray($sthis->styleWithdrawal);
+                    if ($course->estado_estudiante === 'Matriculado (a)' && $course->fecha_baja_matricula !== '') {
+                        $sheetActive->getStyle('A'.$fila.':M'.$fila)->applyFromArray($this->styleWithdrawal);
                     }
                     
                     $fila++;
