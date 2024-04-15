@@ -565,10 +565,10 @@
                 $sheetActive->setCellValue('A1', 'Registro de cursos periodo '. $periodo);
 
                 // applying filter on headers
-                $sheetActive->setAutoFilter('A3:L3');
+                $sheetActive->setAutoFilter('A3:M3');
 
                 // application of styles on headers
-                $sheetActive->getStyle('A3:L3')->applyFromArray($this->styleTitle);
+                $sheetActive->getStyle('A3:M3')->applyFromArray($this->styleTitle);
 
                 // view lock for headers
                 $sheetActive->freezePane('A4');
@@ -631,12 +631,17 @@
 
                     // apply red highlight style for withdrawals (aplicar estilo resaltado rojo para retiros)
                     if ($course->estado_estudiante === 'Retirado (a)') {
-                        $sheetActive->getStyle('A'.$fila.':L'.$fila)->applyFromArray($this->styleRetired);
+                        $sheetActive->getStyle('A'.$fila.':M'.$fila)->applyFromArray($this->styleRetired);
                     }
 
                     // apply orange highlight style for suspension (aplicar estilo resaltado naranjo para suspención)
                     if ($course->estado_estudiante === 'Suspendido (a)') {
-                        $sheetActive->getStyle('A'.$fila.':L'.$fila)->applyFromArray($this->styleOrange);
+                        $sheetActive->getStyle('A'.$fila.':M'.$fila)->applyFromArray($this->styleOrange);
+                    }
+
+                    // apply gray highlight style for lows (aplicar estilo resaltado gris para bajas)
+                    if ($course->estado_estudiante === 'Matriculado (a)' && $course->fecha_baja_matricula !== null) {
+                        $sheetActive->getStyle('A'.$fila.':M'.$fila)->applyFromArray($sthis->styleWithdrawal);
                     }
                     
                     $fila++;
