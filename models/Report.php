@@ -478,7 +478,7 @@
             $this->validateToken();
 
             // user privilege validation
-            $this->validatePrivilege([1, 2, 3, 4]);
+            // $this->validatePrivilege([1, 2, 3, 4]);
 
             // start transaction
             $this->beginTransaction();
@@ -486,25 +486,63 @@
 
             // SQL query
             $statementReportCourses = $this->preConsult(
-                "SELECT to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
-                m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso, m.numero_lista_curso AS n_lista,
-                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
-                e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
-                (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
-                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
+                // "SELECT to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                // m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso, m.numero_lista_curso AS n_lista,
+                // to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                // to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
+                // e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                // (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                // '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                // (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
+                // FROM libromatricula.registro_matricula AS m
+                // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                // LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                // INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
+                // WHERE m.anio_lectivo_matricula = ?
+                // order by curso, m.numero_lista_curso;"
+                "SELECT 
+                    to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                    m.numero_matricula, 
+                    (c.grado_curso || '' || c.letra_curso) AS curso, 
+                    m.numero_lista_curso AS n_lista,
+                    to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                    NULL AS fecha_baja_matricula,
+                    to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
+                    e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                    (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                    '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                    (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
                 FROM libromatricula.registro_matricula AS m
-                LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-                LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
+                    LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                    LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                    INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
                 WHERE m.anio_lectivo_matricula = ?
-                order by curso, m.numero_lista_curso;"
+                
+                UNION ALL
+                
+                SELECT
+                    to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                    m.numero_matricula,
+                    (c.grado_curso || '' || c.letra_curso) AS curso,
+                    log.old_number_list AS n_lista,
+                    to_char(log.discharge_date, 'DD/MM/YYYY') AS fecha_alta_matricula,
+                    to_char(log.withdrawal_date, 'DD/MM/YYYY') AS fecha_baja_matricula,
+                    to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
+                    e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
+                    (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+                    '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+                    (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
+                FROM libromatricula.student_withdrawal_from_list_log AS log
+                    LEFT JOIN libromatricula.registro_matricula AS m ON m.id_registro_matricula = log.id_registro_matricula
+                    LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = log.id_old_course
+                    LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                    INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
+                WHERE m.anio_lectivo_matricula = ?"
             );
 
             try {
                 // SQL query execution
-                $statementReportCourses->execute([intval($periodo)]);
+                $statementReportCourses->execute([intval($periodo), intval($periodo)]);
 
                 // confirm transaction
                 $this->commit();
@@ -542,18 +580,20 @@
                 $sheetActive->getColumnDimension('D')->setWidth(10);
                 $sheetActive->getColumnDimension('E')->setWidth(16);
                 $sheetActive->getColumnDimension('F')->setWidth(16);
-                $sheetActive->getColumnDimension('G')->setWidth(10);
-                $sheetActive->getColumnDimension('H')->setWidth(22);
+                $sheetActive->getColumnDimension('G')->setWidth(16);
+                $sheetActive->getColumnDimension('H')->setWidth(10);
                 $sheetActive->getColumnDimension('I')->setWidth(22);
-                $sheetActive->getColumnDimension('J')->setWidth(30);
-                $sheetActive->getColumnDimension('K')->setWidth(20);
-                $sheetActive->getColumnDimension('L')->setWidth(24);
+                $sheetActive->getColumnDimension('J')->setWidth(22);
+                $sheetActive->getColumnDimension('K')->setWidth(30);
+                $sheetActive->getColumnDimension('L')->setWidth(20);
+                $sheetActive->getColumnDimension('M')->setWidth(24);
+
 
                 // cell content alignment
-                $sheetActive->getStyle('A:G')->getAlignment()->setHorizontal('center');
-                $sheetActive->getStyle('K')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A:H')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('L')->getAlignment()->setHorizontal('center');
                 $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left'); 
-                $sheetActive->getStyle('A3:L3')->getAlignment()->setHorizontal('left'); 
+                $sheetActive->getStyle('A3:M3')->getAlignment()->setHorizontal('left'); 
 
                 // header titles
                 $sheetActive->setCellValue('A3', 'FECHA MATRICULA');
@@ -561,13 +601,14 @@
                 $sheetActive->setCellValue('C3', 'CURSO');
                 $sheetActive->setCellValue('D3', 'N LISTA');
                 $sheetActive->setCellValue('E3', 'FECHA ALTA');
-                $sheetActive->setCellValue('F3', 'FECHA RETIRO');
-                $sheetActive->setCellValue('G3', 'SEXO');
-                $sheetActive->setCellValue('H3', 'APELLIDO PATERNO');
-                $sheetActive->setCellValue('I3', 'APELLIDO MATERNO');
-                $sheetActive->setCellValue('J3', 'NOMBRES');
-                $sheetActive->setCellValue('K3', 'RUT ESTUDIANTE');
-                $sheetActive->setCellValue('L3', 'ESTADO ESTUDIANTE');
+                $sheetActive->setCellValue('F3', 'FECHA BAJA');
+                $sheetActive->setCellValue('G3', 'FECHA RETIRO');
+                $sheetActive->setCellValue('H3', 'SEXO');
+                $sheetActive->setCellValue('I3', 'APELLIDO PATERNO');
+                $sheetActive->setCellValue('J3', 'APELLIDO MATERNO');
+                $sheetActive->setCellValue('K3', 'NOMBRES');
+                $sheetActive->setCellValue('L3', 'RUT ESTUDIANTE');
+                $sheetActive->setCellValue('M3', 'ESTADO ESTUDIANTE');
 
                 // main writing row
                 $fila = 4;
@@ -579,13 +620,14 @@
                     $sheetActive->setCellValue('C'.$fila, $course->curso);
                     $sheetActive->setCellValue('D'.$fila, $course->n_lista ? $course->n_lista : "N/A");
                     $sheetActive->setCellValue('E'.$fila, $course->fecha_alta_matricula);
-                    $sheetActive->setCellValue('F'.$fila, $course->fecha_retiro_matricula);
-                    $sheetActive->setCellValue('G'.$fila, $course->sexo_estudiante);
-                    $sheetActive->setCellValue('H'.$fila, $course->apellido_paterno_estudiante);
-                    $sheetActive->setCellValue('I'.$fila, $course->apellido_materno_estudiante);
-                    $sheetActive->setCellValue('J'.$fila, $course->nombres_estudiante);
-                    $sheetActive->setCellValue('K'.$fila, $course->rut_estudiante);
-                    $sheetActive->setCellValue('L'.$fila, $course->estado_estudiante);
+                    $sheetActive->setCellValue('F'.$fila, $course->fecha_baja_matricula);
+                    $sheetActive->setCellValue('G'.$fila, $course->fecha_retiro_matricula);
+                    $sheetActive->setCellValue('H'.$fila, $course->sexo_estudiante);
+                    $sheetActive->setCellValue('I'.$fila, $course->apellido_paterno_estudiante);
+                    $sheetActive->setCellValue('J'.$fila, $course->apellido_materno_estudiante);
+                    $sheetActive->setCellValue('K'.$fila, $course->nombres_estudiante);
+                    $sheetActive->setCellValue('L'.$fila, $course->rut_estudiante);
+                    $sheetActive->setCellValue('M'.$fila, $course->estado_estudiante);
 
                     // apply red highlight style for withdrawals (aplicar estilo resaltado rojo para retiros)
                     if ($course->estado_estudiante === 'Retirado (a)') {
