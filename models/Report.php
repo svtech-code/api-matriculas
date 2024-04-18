@@ -486,20 +486,6 @@
 
             // SQL query
             $statementReportCourses = $this->preConsult(
-                // "SELECT to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
-                // m.numero_matricula, (c.grado_curso || '' || c.letra_curso) AS curso, m.numero_lista_curso AS n_lista,
-                // to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta_matricula,
-                // to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro_matricula,
-                // e.sexo_estudiante, e.apellido_paterno_estudiante, e.apellido_materno_estudiante,
-                // (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
-                // '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                // (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, ee.estado AS estado_estudiante
-                // FROM libromatricula.registro_matricula AS m
-                // LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-                // LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                // INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
-                // WHERE m.anio_lectivo_matricula = ?
-                // order by curso, m.numero_lista_curso;"
                 "SELECT 
                     to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
                     m.numero_matricula, 
@@ -516,7 +502,7 @@
                     LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                     LEFT JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                     INNER JOIN libromatricula.registro_estado AS ee ON ee.id_estado = m.id_estado_matricula
-                WHERE m.anio_lectivo_matricula = ?
+                WHERE m.anio_lectivo_matricula = ? and m.id_estado_matricula <> 4
                 
                 UNION ALL
                 
