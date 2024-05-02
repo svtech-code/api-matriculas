@@ -535,25 +535,30 @@
                 $sheetActive->setCellValue('A1', 'Registro de retiros periodo '. $periodo);
 
                 // applying filter on headers
-                // $sheetActive->setAutoFilter('A3:T3');
+                $sheetActive->setAutoFilter('A3:G3');
 
                 // application of styles on headers
-                // $sheetActive->getStyle('A3:T3')->applyFromArray($this->styleTitle);
+                $sheetActive->getStyle('A3:G3')->applyFromArray($this->styleTitle);
 
                 // view lock for headers
                 $sheetActive->freezePane('A4');
 
                 // cell width
                 $sheetActive->getColumnDimension('A')->setWidth(15);
-                $sheetActive->getColumnDimension('B')->setWidth(20);
+                $sheetActive->getColumnDimension('B')->setWidth(10);
+                $sheetActive->getColumnDimension('C')->setWidth(15);
+                $sheetActive->getColumnDimension('D')->setWidth(50);
+                $sheetActive->getColumnDimension('E')->setWidth(15);
+                $sheetActive->getColumnDimension('F')->setWidth(15);
+                $sheetActive->getColumnDimension('G')->setWidth(15);
 
                 // cell content alignment
-                // $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal('center');
-                // $sheetActive->getStyle('K:L')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('A:C')->getAlignment()->setHorizontal('center');
+                $sheetActive->getStyle('E:G')->getAlignment()->setHorizontal('center');
                 // $sheetActive->getStyle('O')->getAlignment()->setHorizontal('center');
                 // $sheetActive->getStyle('S')->getAlignment()->setHorizontal('center');
-                // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');                
-                // $sheetActive->getStyle('A3:T3')->getAlignment()->setHorizontal('left'); 
+                $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');                
+                $sheetActive->getStyle('A3:G3')->getAlignment()->setHorizontal('left'); 
 
                 // header titles
                 $sheetActive->setCellValue('A3', 'MATRICULA');
