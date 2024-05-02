@@ -568,7 +568,7 @@
                 $fila = 4;
 
                 // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
-                foreach ($reportMatricula as $report) {
+                foreach ($reportWithdrawal as $report) {
                     $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
                     $sheetActive->setCellValue('B'.$fila, $report->curso);
                     $sheetActive->setCellValue('C'.$fila, $report->rut_estudiante);
