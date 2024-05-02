@@ -293,8 +293,8 @@
             // user token validation
             $this->validateToken();
 
-            // user privilege validation
-            $this->validatePrivilege([1, 2, 3, 4]);
+            // // user privilege validation
+            // $this->validatePrivilege([1, 2, 3, 4]);
 
             // start transaction
             $this->beginTransaction();
@@ -459,6 +459,138 @@
 
                 // getting postgreSQL error, if exists
                 $messageError = ErrorHandler::handleError($error, $statementReportMatricula);
+
+                // custom exception for errors
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // closing the connection with the database
+                $this->closeConnection();
+            }
+
+        }
+
+        // method to generate registration withdrawal
+        public function getReportWithdrawal($dateFrom, $dateTo, $periodo) {
+            // user token validation
+            $this->validateToken();
+
+            // start transaction
+            $this->beginTransaction();
+            // ========================>
+
+            // SQL query
+            $statementReportWithdrawal = $this->preConsult(
+                "SELECT 
+                    m.numero_matricula, (c.grado_curso || c.letra_curso) AS curso,
+                    (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                    (CASE 
+                        WHEN e.nombre_social_estudiante IS NULL 
+                        THEN e.nombres_estudiante
+                        ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante 
+                    END || ' ' || e.apellido_paterno_estudiante || ' ' || e.apellido_materno_estudiante) AS nombres_estudiante,
+                    to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                    to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta,
+                    to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro
+                
+                FROM
+                    libromatricula.registro_matricula AS m
+                    INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                    INNER JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                
+                WHERE
+                    m.id_estado_matricula = 4
+                    AND m.anio_lectivo_matricula = ?
+                    AND m.fecha_retiro_matricula >= ?
+                    AND m.fecha_retiro_matricula <= ?
+                    
+                ORDER BY
+                    m.fecha_retiro_matricula DESC;"
+            );
+
+            try {
+                // SQL query execution
+                $statementReportWithdrawal->execute([intval($periodo), $dateFrom, $dateTo]);
+
+                // confirm transaction
+                $this->commit();
+                // ========================>
+
+                // obtaining object with query data
+                $reportWithdrawal = $statementReportWithdrawal->fetchAll(PDO::FETCH_OBJ);
+
+                // create a excel object
+                $file = $this->createExcelObject("Registro Retiros");
+
+                // selection and modification of the main sheet
+                $file->setActiveSheetIndex(0);
+                $sheetActive = $file->getActiveSheet();
+                $sheetActive->setTitle("Registro de retiros");
+                $sheetActive->setShowGridLines(false);
+                $sheetActive->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+
+                // excel sheet title
+                $sheetActive->setCellValue('A1', 'Registro de retiros periodo '. $periodo);
+
+                // applying filter on headers
+                // $sheetActive->setAutoFilter('A3:T3');
+
+                // application of styles on headers
+                // $sheetActive->getStyle('A3:T3')->applyFromArray($this->styleTitle);
+
+                // view lock for headers
+                $sheetActive->freezePane('A4');
+
+                // cell width
+                $sheetActive->getColumnDimension('A')->setWidth(15);
+                $sheetActive->getColumnDimension('B')->setWidth(20);
+
+                // cell content alignment
+                // $sheetActive->getStyle('A:E')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('K:L')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('O')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('S')->getAlignment()->setHorizontal('center');
+                // $sheetActive->getStyle('A1')->getAlignment()->setHorizontal('left');                
+                // $sheetActive->getStyle('A3:T3')->getAlignment()->setHorizontal('left'); 
+
+                // header titles
+                $sheetActive->setCellValue('A3', 'MATRICULA');
+                $sheetActive->setCellValue('B3', 'CURSO');
+                $sheetActive->setCellValue('C3', 'RUT');
+                $sheetActive->setCellValue('D3', 'NOMBRES ESTUDIANTE');
+                $sheetActive->setCellValue('E3', 'FECHA MATRÍCULA');
+                $sheetActive->setCellValue('F3', 'FECHA ALTA');
+                $sheetActive->setCellValue('G3', 'FECHA RETIRO');
+
+                // main writing row
+                $fila = 4;
+
+                // traversal of data object to insert into rows (recorrido del objeto de datos para insertar en filas)
+                foreach ($reportMatricula as $report) {
+                    $sheetActive->setCellValue('A'.$fila, $report->numero_matricula);
+                    $sheetActive->setCellValue('B'.$fila, $report->curso);
+                    $sheetActive->setCellValue('C'.$fila, $report->rut_estudiante);
+                    $sheetActive->setCellValue('D'.$fila, $report->nombres_estudiante);
+                    $sheetActive->setCellValue('E'.$fila, $report->fecha_matricula);
+                    $sheetActive->setCellValue('F'.$fila, $report->fecha_alta);
+                    $sheetActive->setCellValue('G'.$fila, $report->fecha_retiro);
+
+                    $fila++;
+                }
+
+                // excel file download ========================>
+                $this->downloadExcelFile($file, "ReporteRetiro_", $periodo);
+
+
+            } catch (Exception $error) {
+                // roll back transaction on error
+                $this->rollBack();
+                // ========================>
+
+                // getting postgreSQL error, if exists
+                $messageError = ErrorHandler::handleError($error, $statementReportWithdrawal);
 
                 // custom exception for errors
                 Flight::halt(404, json_encode([
