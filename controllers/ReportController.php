@@ -13,6 +13,9 @@
     Flight::route('GET /report/getReportCourses/@periodo', [$report, "getReportCourses"]);
     Flight::route('GET /report/getReportCourse/@periodo/@course', [$report, "getReportCourse"]);
     Flight::route('GET /report/getReportChangeCourse/@periodo', [$report, "getReportChangeCourse"]);
+    
+    
+    Flight::route('POST /report/getRegistrationForm', [$report, "getRegistrationForm"]);
 
 
 

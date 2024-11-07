@@ -288,6 +288,268 @@
 
         }
 
+        private function arrayObject($arrayData, $schemeData) {
+            // Verificar si es un string; si lo es, lo convertimos en un array
+            if (is_string($arrayData)) {
+                // Suponiendo que los valores están separados por comas
+                $arrayData = explode(", ", $arrayData); // Ajusta la separación si es distinta
+            } elseif (!is_array($arrayData)) {
+                // Si no es ni array ni string, convertir a array vacío para evitar errores
+                $arrayData = [];
+            }
+
+            // inicialización del array de salida con todas las claves en valor ""
+            $newArrayData = array_fill_keys(array_keys($schemeData ), "");
+
+            foreach ($schemeData  as $clave  => $nombre) {
+                if (in_array($nombre, $arrayData)) {
+                    $newArrayData[$clave] = "x";
+                }
+            }
+
+            return (object) $newArrayData;
+        }
+
+        // method to generate registration form (ficha matricula)
+        public function getRegistrationForm() {
+            // user token validation
+            $this->validateToken();
+
+            // user privilege validation
+            $this->validatePrivilege([1, 2, 5]);
+
+            // obtención de la data enviada por el cliente
+            $dataStudent = Flight::request()->data; // => recibir tambien el nombre_usuario
+
+            try {
+                // routes for word templates
+                $templateRegistrationForm = './document/fichaMatricula.docx';
+                $templateCertificadoAlumnoRegularTemp = './document/fichaMatricula_temp.docx';
+
+                // create a templateProcessor object
+                $file = new TemplateProcessor($templateRegistrationForm);
+
+                // obtención de los valores a ser asignados con selección X
+                $electividad = $dataStudent['ELECTIVIDAD DE ARTES Y RELIGIONES'];
+                $especialistas = $dataStudent['¿POR QUE TIPO DE ESPECIALISTA HA SIDO EVALUADO?'];
+
+                // esquema de valores
+                $schemaElectividad = [
+                    "visuales" => "Artes Visuales",
+                    "musica" => "Música",
+                    "etica" => "Ética",
+                    "catolica" => "Religión Católica",
+                    "evangelica" => "Religión Evangélica"
+                ];
+
+                $schemaEspecialista = [
+                    "esp_1" => "Psicólogo",
+                    "esp_2" => "Psiquiatra",
+                    "esp_3" => "Psicopedagogo",
+                    "esp_4" => "Fonoaudiólogo",
+                    "esp_5" => "Otro"
+                ];
+
+
+
+
+                // // Verificar si es un string; si lo es, lo convertimos en un array
+                // if (is_string($electividad)) {
+                //     // Suponiendo que los valores están separados por comas
+                //     $electividad = explode(", ", $valores); // Ajusta la separación si es distinta
+                // } elseif (!is_array($electividad)) {
+                //     // Si no es ni array ni string, convertir a array vacío para evitar errores
+                //     $electividad = [];
+                // }
+
+                // // obtencion de las electividades
+                // $mapaClaves  = [
+                //     "visuales" => "Artes Visuales",
+                //     "musica" => "Música",
+                //     "etica" => "Ética",
+                //     "catolica" => "Religión Católica",
+                //     "evangelica" => "Religión Evangélica"
+                // ];
+
+                // inicialización del array de salida con todas las claves en valor ""
+                // $arrayData = array_fill_keys(array_keys($mapaClaves ), "");
+
+                // foreach ($mapaClaves  as $clave  => $nombre) {
+                //     if (in_array($nombre, $electividad)) {
+                //         $arrayData[$clave] = "x";
+                //     }
+                // }
+
+                // $electividades = (object) $arrayData;
+                $electividades = $this->arrayObject($electividad, $schemaElectividad);
+                $especialidadesMedicos = $this->arrayObject($especialistas, $schemaEspecialista);
+
+
+                // dynamic data assignment
+                $file->setValues(
+                    [
+                        // data student
+                        'year_document' => date('Y'),
+                        'year_grade' => date('Y'),
+                        'dia' => date('j'),
+                        'mes' => $this->month[$this->currentMonth],
+                        'anio' => date('Y'),
+                        'n_matricula' => $dataStudent->n_matricula,
+                        'grado_curso' => $dataStudent->grado_curso,
+                        'paterno_estudiante' => $dataStudent['PRIMER APELLIDO ESTUDIANTE'],
+                        'materno_estudiante' => $dataStudent['SEGUNDO APELLIDO ESTUDIANTE'],
+                        'nombres_estudiante' => $dataStudent['NOMBRES ESTUDIANTE'],
+                        'n_social' => $dataStudent['NOMBRE SOCIAL'],
+                        // 'tipo_sae' => $dataStudent->##   //----> agregar si es antiguo o nunevo (SAE)
+                        'run_estudiante' => $dataStudent['RUN (Ejemplo 12345678-9) ESTUDIANTE'],
+                        'sexo' => $dataStudent['SEXO ESTUDIANTE'],
+                        'dirección_estudiante' => $dataStudent['DIRECCIÓN ESTUDIANTE'],
+                        'referencia_direccion' => $dataStudent['REFERENCIA DIRECCIÓN ESTUDIANTE'],
+                        'comuna' => $dataStudent['COMUNA ESTUDIANTE'],
+                        'nacionalidad' => $dataStudent['NACIONALIDAD ESTUDIANTE'],
+                        'correo_estudiante' => $dataStudent['CORREO ELECTRÓNICO ESTUDIANTE'],
+                        'quien_vive' => $dataStudent['PERSONAS CON QUIEN VIVE ESTUDIANTE'],
+                        'col_procedencia' => $dataStudent['COLEGIO DE PROCEDENCIA ESTUDIANTE'],
+                        'sector_rural' => $dataStudent['¿VIVE EN SECTOR RURAL?'],
+                        'talento_estudiante' => $dataStudent['TALENTOS ACADEMICOS ESTUDIANTE'],
+                        'diciplinas_estudiante' => $dataStudent['DISCIPLINAS QUE PRACTICA ESTUDIANTE'],
+                        'tiene_pie' => $dataStudent['(PIE) ¿PERTENECE O PERTENECIÓ AL PROGRAMA DE INTEGRACIÓN ESCOLAR?'],
+                        'curso_pie' => $dataStudent['¿EN QUÉ CURSO ESTUVO EN PIE?'],
+                        'colegio_pie' => $dataStudent['¿EN QUÉ COLEGIO ESTUVO EN PIE?'],
+                        'f_nacimiento' => $dataStudent['FECHA DE NACIMIENTO ESTUDIANTE'],
+                        'edad' => $dataStudent['EDAD ESTUDIANTE'],
+                        'tel_estudiante' => $dataStudent['TELÉFONO ESTUDIANTE'],
+                        'tel_emergencia' => $dataStudent['TELÉFONO PARA CASOS DE EMERGENCIA ESTUDIANTE'],
+                        'reprobados' => $dataStudent['CANTIDAD DE CURSOS REPROBADOS ESTUDIANTE'],
+                        'year_after' => '2024', // cambiar manualmente
+                        'curso_anterior' => $dataStudent['CURSO PERIODO 2024'],
+                        'internet' => $dataStudent['¿TIENE ACCESO A INTERNET?'],
+                        'diagnostico_pie' => $dataStudent['RECUERDA EL DIAGNÓSTICO PIE'],
+                        'documento_pie' => $dataStudent['¿CUENTA CON DOCUMENTACIÓN PIE?'],
+                        'sename' => $dataStudent['¿PERTENECE O PERTENECIÓ A PROGRAMAS DE LA RED SENAME?'],
+
+                        // data family titula
+                        'paterno_titular' => $dataStudent['PRIMER APELLIDO APODERADO TITULAR'],
+                        'nombres_titular' => $dataStudent['NOMBRES APODERADO TITULAR'],
+                        'run_titular' => $dataStudent['RUN (Ejemplo 12345678-9) APODERADO TITULAR'],
+                        'direc_titular' => $dataStudent['DIRECCIÓN APODERADO TITULAR'],
+                        'act_titular' => $dataStudent['ACTIVIDAD LABORAL APODERADO TITULAR'],
+                        'lug_titular' => $dataStudent['LUGAR DE TRABAJO APODERADO TITULAR'],
+                        'mail_titular' => $dataStudent['CORREO ELECTRÓNICO APODERADO TITULAR'],
+                        'materno_titular' => $dataStudent['SEGUNDO APELLIDO APODERADO TITULAR'],
+                        'parentesco_titular' => $dataStudent['PARENTESCO APODERADO TITULAR'],
+                        'esc_titular' => $dataStudent['ESCOLARIDAD APODERADO TITULAR'],
+                        'tel_titular' => $dataStudent['TELÉFONO DE CONTACTO APODERADO TITULAR'],
+
+                        // data family suplente
+                        'paterno_suplente' => $dataStudent['PRIMER APELLIDO APODERADO SUPLENTE'],
+                        'nombres_suplente' => $dataStudent['NOMBRES APODERADO SUPLENTE'],
+                        'run_suplente' => $dataStudent['RUN (Ejemplo 12345678-9) APODERADO SUPLENTE'],
+                        'direc_suplente' => $dataStudent['DIRECCIÓN APODERADO SUPLENTE'],
+                        'act_suplente' => $dataStudent['ACTIVIDAD LABORAL APODERADO SUPLENTE'],
+                        'lug_suplente' => $dataStudent['LUGAR DE TRABAJO APODERADO SUPLENTE'],
+                        'mail_suplente' => $dataStudent['CORREO ELECTRÓNICO APODERADO SUPLENTE'],
+                        'materno_suplente' => $dataStudent['SEGUNDO APELLIDO APODERADO SUPLENTE'],
+                        'parentesco_suplente' => $dataStudent['PARENTESCO APODERADO SUPLENTE'],
+                        'esc_suplente' => $dataStudent['ESCOLARIDAD APODERADO SUPLENTE'],
+                        'tel_suplente' => $dataStudent['TELÉFONO DE CONTACTO APODERADO SUPLENTE'],
+
+                        // data family mather
+                        'paterno_madre' => $dataStudent['PRIMER APELLIDO MADRE'],
+                        'nombres_madre' => $dataStudent['NOMBRES MADRE'],
+                        'run_madre' => $dataStudent['RUN (Ejemplo 12345678-9) MADRE'],
+                        'direc_madre' => $dataStudent['DIRECCIÓN MADRE'],
+                        'act_madre' => $dataStudent['ACTIVIDAD LABORAL MADRE'],
+                        'lug_madre' => $dataStudent['LUGAR DE TRABAJO MADRE'],
+                        'mail_madre' => $dataStudent['CORREO ELECTRÓNICO MADRE'],
+                        'materno_madre' => $dataStudent['SEGUNDO APELLIDO MADRE'],
+                        'esc_madre' => $dataStudent['ESCOLARIDAD MADRE'],
+                        'tel_madre' => $dataStudent['TELÉFONO DE CONTACTO MADRE'],
+
+                        // data family pather
+                        'paterno_padre' => $dataStudent['PRIMER APELLIDO PADRE'],
+                        'nombres_padre' => $dataStudent['NOMBRES PADRE'],
+                        'run_padre' => $dataStudent['RUN (Ejemplo 12345678-9) PADRE'],
+                        'direc_padre' => $dataStudent['DIRECCIÓN PADRE'],
+                        'act_padre' => $dataStudent['ACTIVIDAD LABORAL PADRE'],
+                        'lug_padre' => $dataStudent['LUGAR DE TRABAJO PADRE'],
+                        'mail_padre' => $dataStudent['CORREO ELECTRÓNICO PADRE'],
+                        'materno_padre' => $dataStudent['SEGUNDO APELLIDO PADRE'],
+                        'esc_padre' => $dataStudent['ESCOLARIDAD PADRE'],
+                        'tel_padre' => $dataStudent['TELÉFONO DE CONTACTO PADRE'],
+
+                        // social data
+                        'personas_casa' => $dataStudent['NÚMERO DE PERSONAS QUE HABITAN LA CASA'],
+                        'agua' => $dataStudent['¿CUENTA CON AGUA POTABLE?'],
+                        'reg_social' => $dataStudent['PORCENTAJE REGISTRO SOCIAL DE HOGARES (%)'],
+                        'prevision' => $dataStudent['PREVISIÓN DE SALUD'],
+                        'dormitorios_casa' => $dataStudent['NÚMERO DORMITORIOS'],
+                        'luz' => $dataStudent['¿CUENTA CON LUZ ELÉCTRICA?'],
+                        'alcantarillado' => $dataStudent['¿CUENTA CON ALCANTARILLADO?'],
+                        'subsidio' => $dataStudent['¿CUENTA CON SUBSIDIO FAMILIAR?'],
+
+                        // health data
+                        'enfermedades_cronicas' => $dataStudent['¿TIENE ALGUNA ENFERMEDAD CRÓNICA O DE CUIDADO? (DIAGNOSTICADA POR UN PROFESIONAL MÉDICO)'],
+                        'doc_1' => $dataStudent['¿TIENE DOCUMENTACIÓN DE ALGUNA ENFERMEDAD CRÓNICA O DE CUIDADO? (DIAGNOSTICADA POR UN PROFESIONAL MÉDICO)'],
+                        'med_indicados' => $dataStudent['MEDICAMENTOS INDICADOS'],
+                        'med_contraindicados' => $dataStudent['MEDICAMENTOS CONTRAINDICADOS O ALERGIAS'],
+                        'grup_sanguineo' => $dataStudent['GRUPO SANGUÍNEO'],
+                        'ev_esp' => $dataStudent['¿EL ESTUDIANTE HA SIDO EVALUADO POR ALGÚN ESPECIALISTA?'],
+
+                        // secciones especialidades medico tratante
+                        'esp_1' => $especialidadesMedicos->esp_1,
+                        'esp_2' => $especialidadesMedicos->esp_2,
+                        'esp-3' => $especialidadesMedicos->esp_3,
+                        'esp_4' => $especialidadesMedicos->esp_4,
+                        'esp_5' => $especialidadesMedicos->esp_5,
+
+                        'trat_esp' => $dataStudent['¿EL ESTUDIANTE ESTÁ EN TRATAMIENTO CON ALGÚN ESPECIALISTA?'],
+                        'nombres_especialista' => $dataStudent['NOMBRE DEL PROFESIONAL TRATANTE'],
+                        'especialidad' => $dataStudent['ESPECIALIDAD DEL PROFESIONAL TRATANTE'],
+
+                        // data for junaeb
+                        'escolar' => $dataStudent['¿CUENTA CON BENEFICIO DE ALIMENTACIÓN ESCOLAR?'],
+                        'solidario' => $dataStudent['¿PERTENECE AL PROGRAMA FAMILIA SEGURIDAD Y OPORTUNIDADES? (CHILE SOLIDARIO)'],
+                        'etnia' => $dataStudent['¿PERTENECE A ALGUNA ETNIA?'],
+                        'beca_indi' => $dataStudent['¿TIENE BECA INDÍGENA?'],
+                        'beca_pre' => $dataStudent['¿TIENE BECA PRESIDENTE DE LA REPÚBLICA?'],
+
+                        // sección electividades
+                        'visuales' => $electividades->visuales,
+                        'musica' => $electividades->musica,
+                        'etica' => $electividades->etica,
+                        'catolica' => $electividades->catolica,
+                        'evangelica' => $electividades->evangelica,
+
+                        // funcionary data
+                        'funcionario' => $dataStudent->funcionarioRegistrador,
+                    ]
+                );
+
+                // save modified word template
+                $file->saveAs($templateCertificadoAlumnoRegularTemp);
+    
+                // download degenerated word document
+                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                header("Content-Disposition: attachment; filename=$templateCertificadoAlumnoRegularTemp");
+                readfile($templateCertificadoAlumnoRegularTemp);
+                unlink($templateCertificadoAlumnoRegularTemp);
+    
+
+
+            } catch (Exception $error) {
+                // custom exception for errors
+                $statusCode = $error->getCode() ? $error->getCode() : 404;
+
+                // expeción personalizada para errores
+                Flight::halt($statusCode, json_encode([
+                    "message" => "Error: ". $error,
+                ]));
+
+            }
+        }
+
+
         //method to generate registration report
         public function getReportMatricula($dateFrom, $dateTo, $periodo) {
             // user token validation

@@ -1,4 +1,4 @@
-# Header set Access-Control-Allow-Credentials "true"
+#Header set Access-Control-Allow-Credentials "true"
 
 # Habilitar CORS para todas las solicitudes
 Header set Access-Control-Allow-Origin "*"
