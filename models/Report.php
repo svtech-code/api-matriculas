@@ -400,7 +400,7 @@
                         'materno_estudiante' => $dataStudent['SEGUNDO APELLIDO ESTUDIANTE'],
                         'nombres_estudiante' => $dataStudent['NOMBRES ESTUDIANTE'],
                         'n_social' => $dataStudent['NOMBRE SOCIAL'],
-                        // 'tipo_sae' => $dataStudent->##   //----> agregar si es antiguo o nunevo (SAE)
+                        'tipo_sae' => $dataStudent->tipoMatricula === true ? "Nuevo" : "Continua",
                         'run_estudiante' => $dataStudent['RUN (Ejemplo 12345678-9) ESTUDIANTE'],
                         'sexo' => $dataStudent['SEXO ESTUDIANTE'],
                         'dirección_estudiante' => $dataStudent['DIRECCIÓN ESTUDIANTE'],

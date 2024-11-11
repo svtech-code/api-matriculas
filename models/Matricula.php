@@ -70,13 +70,14 @@
                 ('+569-' || apt.telefono_apoderado) AS telefono_titular,
                 (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
                 (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
-                ('+569-' || aps.telefono_apoderado) AS telefono_suplente
+                ('+569-' || aps.telefono_apoderado) AS telefono_suplente, l.estudiante_nuevo
                 FROM libromatricula.registro_matricula AS m
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
                 LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
                 LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                LEFT JOIN libromatricula.lista_sae AS l ON l.rut_estudiante = e.rut_estudiante
                 WHERE m.anio_lectivo_matricula = ?
                 ORDER BY m.numero_matricula DESC;"
             );
@@ -111,6 +112,7 @@
                         "rut_suplente" => $matricula->rut_apoderado_suplente,
                         "apoderado_suplente" => $matricula->apoderado_suplente,
                         "telefono_suplente" => $matricula->telefono_suplente,
+                        "estudiante_nuevo" => $matricula->estudiante_nuevo,
                     ];
                 }
 
