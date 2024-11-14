@@ -56,7 +56,7 @@
 
             // sentencia SQL
             $statmentMatricula = $this->preConsult(
-                "SELECT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
+                "SELECT DISTINCT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
                 e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
                 '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
                 COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD/MM/YYYY'), 'Sin registro') AS fecha_nacimiento,
@@ -70,7 +70,8 @@
                 ('+569-' || apt.telefono_apoderado) AS telefono_titular,
                 (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
                 (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
-                ('+569-' || aps.telefono_apoderado) AS telefono_suplente, l.estudiante_nuevo
+                ('+569-' || aps.telefono_apoderado) AS telefono_suplente, l.estudiante_nuevo,
+                CASE WHEN m.revision_ficha IS NOT NULL THEN TRUE ELSE FALSE END AS tiene_detalle 
                 FROM libromatricula.registro_matricula AS m
                 INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
                 LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
@@ -113,6 +114,7 @@
                         "apoderado_suplente" => $matricula->apoderado_suplente,
                         "telefono_suplente" => $matricula->telefono_suplente,
                         "estudiante_nuevo" => $matricula->estudiante_nuevo,
+                        "tiene_detalle" => $matricula->tiene_detalle
                     ];
                 }
 
@@ -482,6 +484,77 @@
                 // cierre de la conexión con la base de datos
                 $this->closeConnection();
             }
+
+        }
+
+        public function putEditMatricula() {
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2]);
+
+            // se obtiene el id_usuario del token
+            //$usserId = $this->getToken()->id_usuario;
+
+            // obtención de los datos enviados desde el cliente
+            $dataMatricula = Flight::request()->data;
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementUpdateMatricula = $this->preConsult(
+                "UPDATE libromatricula.registro_matricula
+                SET revision_ficha = ?
+                WHERE id_registro_matricula = ?
+                AND anio_lectivo_matricula = ?"
+            );
+
+            try {
+
+                // validación por si ya tiene detalle 
+                if ($dataMatricula->tiene_detalle === true) {
+                    Flight::halt(201, json_encode([
+                        "message" => "Ya se ha ingresado detalle de modificación !", 
+                    ]));
+                }
+
+                // se ejecuta la consulta
+                $statementUpdateMatricula->execute([
+                    $dataMatricula->editDetail,
+                    $dataMatricula->idMatricula,
+                    $dataMatricula->periodo,
+                ]); 
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // devolución de respuesta exitosa
+                $this->array = ["message" => "success"];
+                Flight::json($this->array);                
+
+            } catch (Exception $error) {
+                // revertir transacción en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencuión de mensaje de error de potgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementUpdateMatricula);
+
+                // excepción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError, 
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
+            
+
 
         }
 

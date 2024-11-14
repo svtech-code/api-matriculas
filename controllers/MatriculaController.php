@@ -13,6 +13,7 @@
     // peticiones PUT
     Flight::route('PUT /matricula/updateMatricula', [$matricula, "updateMatricula"]);
     Flight::route('PUT /matricula/putWithdrawalDateMatricula', [$matricula, "putWithdrawalDateMatricula"]);
+    Flight::route('PUT /matricula/putEditMatricula', [$matricula, "putEditMatricula"]);
 
 
     // peticiones PDELETE
