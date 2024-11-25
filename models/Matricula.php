@@ -56,33 +56,88 @@
 
             // sentencia SQL
             $statmentMatricula = $this->preConsult(
-                "SELECT DISTINCT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
-                e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
-                '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
-                COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD/MM/YYYY'), 'Sin registro') AS fecha_nacimiento,
-                to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta,
-                to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro,
-                to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
-                CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, 
-                m.grado, (c.grado_curso::text || c.letra_curso) AS curso,
-                (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
-                (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS apoderado_titular,
-                ('+569-' || apt.telefono_apoderado) AS telefono_titular,
-                (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
-                (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
-                ('+569-' || aps.telefono_apoderado) AS telefono_suplente, l.estudiante_nuevo,
-                CASE WHEN m.revision_ficha IS NOT NULL THEN TRUE ELSE FALSE END AS tiene_detalle 
-                FROM libromatricula.registro_matricula AS m
-                INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
-                LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
-                LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
-                LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
-                LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
-                LEFT JOIN libromatricula.lista_sae AS l ON l.rut_estudiante = e.rut_estudiante
-                WHERE m.anio_lectivo_matricula = ? 
-                --AND l.periodo_matricula = ?
-                ORDER BY m.numero_matricula DESC;"
+                "SELECT DISTINCT 
+                    m.id_registro_matricula,
+                    m.numero_matricula,
+                    (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante,
+                    e.apellido_paterno_estudiante,
+                    e.apellido_materno_estudiante,
+                    (CASE 
+                        WHEN e.nombre_social_estudiante IS NULL 
+                        THEN e.nombres_estudiante 
+                        ELSE '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante 
+                    END) AS nombres_estudiante,
+                    COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD/MM/YYYY'), 'Sin registro') AS fecha_nacimiento,
+                    to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta,
+                    to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro,
+                    to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+                    CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, 
+                    UPPER(est.estado) AS estado, 
+                    m.grado, 
+                    (c.grado_curso::text || c.letra_curso) AS curso,
+                    (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) AS rut_apoderado_titular,
+                    (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS apoderado_titular,
+                    ('+569-' || apt.telefono_apoderado) AS telefono_titular,
+                    (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
+                    (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
+                    ('+569-' || aps.telefono_apoderado) AS telefono_suplente,
+                    CASE 
+                        WHEN l.rut_estudiante IS NULL THEN true  -- Estudiante nuevo si no está en lista_sae
+                        ELSE false  -- Estudiante continuo si está en lista_sae
+                    END AS estudiante_nuevo,
+                    CASE 
+                        WHEN m.revision_ficha IS NOT NULL THEN TRUE 
+                        ELSE FALSE 
+                    END AS tiene_detalle
+                FROM 
+                    libromatricula.registro_matricula AS m
+                INNER JOIN 
+                    libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+                LEFT JOIN 
+                    libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
+                LEFT JOIN 
+                    libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+                LEFT JOIN 
+                    libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+                LEFT JOIN 
+                    libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+                LEFT JOIN 
+                    (SELECT DISTINCT rut_estudiante 
+                    FROM libromatricula.lista_sae) AS l ON l.rut_estudiante = e.rut_estudiante
+                WHERE 
+                    m.anio_lectivo_matricula = ?
+                ORDER BY 
+                    m.numero_matricula DESC;"
             );
+
+            // respaldo de sentencia
+            // $statmentMatricula = $this->preConsult(
+            //     "SELECT DISTINCT m.id_registro_matricula, m.numero_matricula, (e.rut_estudiante || '-' || e.dv_rut_estudiante) AS rut_estudiante, 
+            //     e.apellido_paterno_estudiante, e.apellido_materno_estudiante, (CASE WHEN e.nombre_social_estudiante IS NULL THEN e.nombres_estudiante ELSE
+            //     '(' || e.nombre_social_estudiante || ') ' || e.nombres_estudiante END) AS nombres_estudiante,
+            //     COALESCE(to_char(e.fecha_nacimiento_estudiante, 'DD/MM/YYYY'), 'Sin registro') AS fecha_nacimiento,
+            //     to_char(m.fecha_alta_matricula, 'DD/MM/YYYY') AS fecha_alta,
+            //     to_char(m.fecha_retiro_matricula, 'DD/MM/YYYY') AS fecha_retiro,
+            //     to_char(m.fecha_matricula, 'DD/MM/YYYY') AS fecha_matricula,
+            //     CASE WHEN e.sexo_estudiante = 'M' THEN 'MASCULINO' ELSE 'FEMENINO' END AS sexo, UPPER(est.estado) AS estado, 
+            //     m.grado, (c.grado_curso::text || c.letra_curso) AS curso,
+            //     (apt.rut_apoderado || '-' || apt.dv_rut_apoderado) as rut_apoderado_titular,
+            //     (apt.nombres_apoderado || ' ' || apt.apellido_paterno_apoderado || ' ' || apt.apellido_materno_apoderado) AS apoderado_titular,
+            //     ('+569-' || apt.telefono_apoderado) AS telefono_titular,
+            //     (aps.rut_apoderado || '-' || aps.dv_rut_apoderado) AS rut_apoderado_suplente,
+            //     (aps.nombres_apoderado || ' ' || aps.apellido_paterno_apoderado || ' ' || aps.apellido_materno_apoderado) AS apoderado_suplente,
+            //     ('+569-' || aps.telefono_apoderado) AS telefono_suplente, l.estudiante_nuevo,
+            //     CASE WHEN m.revision_ficha IS NOT NULL THEN TRUE ELSE FALSE END AS tiene_detalle 
+            //     FROM libromatricula.registro_matricula AS m
+            //     INNER JOIN libromatricula.registro_estudiante AS e ON e.id_estudiante = m.id_estudiante
+            //     LEFT JOIN libromatricula.registro_estado AS est ON est.id_estado = m.id_estado_matricula
+            //     LEFT JOIN libromatricula.registro_apoderado AS apt ON apt.id_apoderado = m.id_apoderado_titular
+            //     LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
+            //     LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
+            //     LEFT JOIN libromatricula.lista_sae AS l ON l.rut_estudiante = e.rut_estudiante
+            //     WHERE m.anio_lectivo_matricula = ? 
+            //     ORDER BY m.numero_matricula DESC;"
+            // );
 
             try {
                 // se ejecuta la consulta
