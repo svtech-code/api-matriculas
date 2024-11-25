@@ -79,13 +79,17 @@
                 LEFT JOIN libromatricula.registro_apoderado AS aps ON aps.id_apoderado = m.id_apoderado_suplente
                 LEFT JOIN libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                 LEFT JOIN libromatricula.lista_sae AS l ON l.rut_estudiante = e.rut_estudiante
-                WHERE m.anio_lectivo_matricula = ? AND l.periodo_matricula = ?
+                WHERE m.anio_lectivo_matricula = ? 
+                --AND l.periodo_matricula = ?
                 ORDER BY m.numero_matricula DESC;"
             );
 
             try {
                 // se ejecuta la consulta
-                $statmentMatricula->execute([intval($periodo), intval($periodo)]);
+                $statmentMatricula->execute([
+                    intval($periodo), 
+                    //intval($periodo)
+                ]);
 
                 // se obtiene un objeto con los datos de la consutla
                 $matriculas = $statmentMatricula->fetchAll(PDO::FETCH_OBJ);
