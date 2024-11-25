@@ -487,6 +487,7 @@
 
         }
 
+        // función para registrar cambios manuales en ficha matricula
         public function putEditMatricula() {
             // se valida el token del usuario
             $this->validateToken();
@@ -555,6 +556,65 @@
             }
             
 
+
+        }
+
+        // función para comprobar si la ficha ya ha sido descargada
+        public function checkDownloadFile($id, $periodo) {
+            
+            // se valida el token del usuario
+            $this->validateToken();
+
+            // se validan los privilegios del usuario
+            $this->validatePrivilege([1, 2, 4]);
+
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // sentencia SQL
+            $statementCheckDownloadFile = $this->preConsult(
+                "SELECT COUNT(*) > 0 AS has_multiple_records
+                FROM libromatricula.registration_audit
+                WHERE id_registration = ?
+                AND periodo = ?"
+            );
+
+            try {
+                // se ejecuta la consulta
+                $statementCheckDownloadFile->execute([intval($id), intval($periodo)]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+                // se obtiene un objeto con los datos de la consulta
+                $result = $statementCheckDownloadFile->fetch(PDO::FETCH_OBJ);
+
+                $hasMultipleRecord = (bool)$result->has_multiple_records;
+
+                // se devuelve un array con todos los datos de matricula
+                Flight::json($hasMultipleRecord);
+
+
+            } catch (Exception $error) {
+
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
+                // obtencion de mensaje de error de postgreSQL si existe
+                $messageError = ErrorHandler::handleError($error, $statementCheckDownloadFile);
+
+                // expeción personalizada para errores
+                Flight::halt(404, json_encode([
+                    "message" => "Error: ". $messageError,
+                ]));
+
+            } finally {
+                // cierre de la conexión con la base de datos
+                $this->closeConnection();
+            }
 
         }
 

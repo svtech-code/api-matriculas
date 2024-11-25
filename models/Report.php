@@ -318,10 +318,39 @@
             // user privilege validation
             $this->validatePrivilege([1, 2, 5]);
 
+            // iniciar transaccion
+            $this->beginTransaction();
+            // ========================>
+
+            // se obtiene el id_usuario del token
+            $usserId = $this->getToken()->id_usuario;
+
             // obtención de la data enviada por el cliente
             $dataStudent = Flight::request()->data; // => recibir tambien el nombre_usuario
 
+            // Sentencia SQL
+            $statementRegistrationDownload = $this->preConsult(
+                "INSERT INTO libromatricula.registration_audit
+                (id_registration, id_user, date_download, periodo)
+                VALUES (?, ?, CURRENT_TIMESTAMP, ?);"
+            );
+
+
             try {
+
+                // registrar la descarga de la ficha
+                $statementRegistrationDownload->execute([
+                    $dataStudent->id_registro,
+                    $usserId,
+                    intval($dataStudent->periodo),
+                ]);
+
+                // confirmar transacción
+                $this->commit();
+                // ========================>
+
+
+
                 // routes for word templates
                 $templateRegistrationForm = './document/fichaMatricula.docx';
                 $templateCertificadoAlumnoRegularTemp = './document/fichaMatricula_temp.docx';
@@ -350,47 +379,15 @@
                     "esp_5" => "Otro"
                 ];
 
-
-
-
-                // // Verificar si es un string; si lo es, lo convertimos en un array
-                // if (is_string($electividad)) {
-                //     // Suponiendo que los valores están separados por comas
-                //     $electividad = explode(", ", $valores); // Ajusta la separación si es distinta
-                // } elseif (!is_array($electividad)) {
-                //     // Si no es ni array ni string, convertir a array vacío para evitar errores
-                //     $electividad = [];
-                // }
-
-                // // obtencion de las electividades
-                // $mapaClaves  = [
-                //     "visuales" => "Artes Visuales",
-                //     "musica" => "Música",
-                //     "etica" => "Ética",
-                //     "catolica" => "Religión Católica",
-                //     "evangelica" => "Religión Evangélica"
-                // ];
-
-                // inicialización del array de salida con todas las claves en valor ""
-                // $arrayData = array_fill_keys(array_keys($mapaClaves ), "");
-
-                // foreach ($mapaClaves  as $clave  => $nombre) {
-                //     if (in_array($nombre, $electividad)) {
-                //         $arrayData[$clave] = "x";
-                //     }
-                // }
-
-                // $electividades = (object) $arrayData;
                 $electividades = $this->arrayObject($electividad, $schemaElectividad);
                 $especialidadesMedicos = $this->arrayObject($especialistas, $schemaEspecialista);
-
 
                 // dynamic data assignment
                 $file->setValues(
                     [
                         // data student
-                        'year_document' => date('Y'),
-                        'year_grade' => date('Y'),
+                        'year_document' => $dataStudent->periodo,
+                        'year_grade' => $dataStudent->periodo,
                         'dia' => date('j'),
                         'mes' => $this->month[$this->currentMonth],
                         'anio' => date('Y'),
@@ -538,6 +535,10 @@
 
 
             } catch (Exception $error) {
+                // revertir transaccion en caso de error
+                $this->rollBack();
+                // ========================>
+
                 // custom exception for errors
                 $statusCode = $error->getCode() ? $error->getCode() : 404;
 

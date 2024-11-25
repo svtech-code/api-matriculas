@@ -6,6 +6,7 @@
     Flight::route('GET /matricula/getAll/@periodo', [$matricula, "getMatriculaAll"]);
     Flight::route('GET /matricula/getMatricula/@id', [$matricula, "getMatricula"]);
     Flight::route('GET /matricula/getStatusProcessMatricula/@periodo', [$matricula, "StatusProcessMatricula"]);
+    Flight::route('GET /matricula/checkDownloadFile/@id/@periodo', [$matricula, "checkDownloadFile"]);
     
     // peticiones POST
     Flight::route('POST /matricula/setMatricula', [$matricula, "setMatricula"]);
