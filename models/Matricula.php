@@ -552,7 +552,7 @@
             $this->validateToken();
 
             // se validan los privilegios del usuario
-            $this->validatePrivilege([1, 2]);
+            $this->validatePrivilege([1, 2, 5]);
 
             // se obtiene el id_usuario del token
             //$usserId = $this->getToken()->id_usuario;
