@@ -83,6 +83,7 @@
                     ('+569-' || aps.telefono_apoderado) AS telefono_suplente,
                     CASE 
                         WHEN l.rut_estudiante IS NULL THEN true  -- Estudiante nuevo si no está en lista_sae
+                        WHEN l.rut_estudiante IS NOT NULL AND l.estudiante_nuevo = true THEN true -- Si esta y es true es estudiante nuevo
                         ELSE false  -- Estudiante continuo si está en lista_sae
                     END AS estudiante_nuevo,
                     CASE 
@@ -102,8 +103,9 @@
                 LEFT JOIN 
                     libromatricula.registro_curso AS c ON c.id_curso = m.id_curso
                 LEFT JOIN 
-                    (SELECT DISTINCT rut_estudiante 
-                    FROM libromatricula.lista_sae) AS l ON l.rut_estudiante = e.rut_estudiante
+                    (SELECT DISTINCT rut_estudiante, estudiante_nuevo
+                    FROM libromatricula.lista_sae
+                    WHERE periodo_matricula = ?) AS l ON l.rut_estudiante = e.rut_estudiante
                 WHERE 
                     m.anio_lectivo_matricula = ?
                 ORDER BY 
@@ -142,8 +144,8 @@
             try {
                 // se ejecuta la consulta
                 $statmentMatricula->execute([
-                    intval($periodo), 
-                    //intval($periodo)
+                    intval($periodo),
+                    intval($periodo),
                 ]);
 
                 // se obtiene un objeto con los datos de la consutla
